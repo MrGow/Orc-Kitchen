@@ -1,0 +1,29 @@
+# GameMaker / IDE temporary files
+*.yy.bak
+*.bak
+*.tmp
+*.temp
+*.log
+
+# GameMaker cache/temp folders
+.cache/
+temp/
+Temp/
+*.resource_order
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Build/export output
+*.zip
+*.exe
+*.apk
+*.aab
+*.ipa
+build/
+Build/
+dist/
+Dist/
+exports/
+Exports/
