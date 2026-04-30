@@ -12,8 +12,8 @@
   "name":"oGame",
   "overriddenProperties":[],
   "parent":{
-    "name":"Orc Kitchen",
-    "path":"Orc Kitchen.yyp",
+    "name":"Objects",
+    "path":"folders/Objects.yy",
   },
   "parentObjectId":null,
   "persistent":false,
