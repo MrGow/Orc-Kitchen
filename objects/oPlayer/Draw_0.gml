@@ -44,4 +44,9 @@ if (debug_player)
 
     draw_set_color(c_white);
     draw_text(x + 12, y - 48, "Held: " + string(held_name));
+
+    if (target_interact != noone)
+    {
+        draw_text(x + 12, y - 30, "Target: " + string(target_interact.object_index));
+    }
 }

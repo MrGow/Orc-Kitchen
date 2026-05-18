@@ -45,11 +45,10 @@ if (!variable_global_exists("tm_solids"))
 // ----------------------------------------------------
 // Interaction
 // ----------------------------------------------------
-interact_range = 32;
+interact_range = 56;
 interact_key_pressed = false;
 
 // The nearest thing we could interact with.
-// Stations/tables/etc can later be found by scripts or collision checks.
 target_interact = noone;
 
 // ----------------------------------------------------
@@ -57,7 +56,7 @@ target_interact = noone;
 // ----------------------------------------------------
 // Universal carry idea:
 // Player uses one carry pose later, and the carried item sprite draws above his head.
-held_kind        = "";
+held_kind        = ""; // "", "plate_clean", "plate_dirty", later "food", "tool", etc.
 held_sprite      = -1;
 held_image       = 0;
 held_name        = "";

@@ -1,28 +1,55 @@
 /// oPlayer — Step Event
-// Top-down movement + basic collision + interaction scaffold
+// Top-down movement + basic collision + station interaction
 
+// ----------------------------------------------------
+// Local helper: checks whether the player's feet area is clear
 // ----------------------------------------------------
 // Local helper: checks whether the player's feet area is clear
 // ----------------------------------------------------
 function __orc_can_stand_at(_x, _y)
 {
-    // If no tilemap is bound, allow movement.
-    if (is_undefined(global.tm_solids) || global.tm_solids == -1)
+    // ------------------------------------------------
+    // Tilemap collision
+    // ------------------------------------------------
+    if (!is_undefined(global.tm_solids) && global.tm_solids != -1)
     {
-        return true;
+        var _l = _x - feet_half_w;
+        var _r = _x + feet_half_w;
+        var _t = _y - feet_half_h;
+        var _b = _y + feet_half_h;
+
+        if (tilemap_get_at_pixel(global.tm_solids, _l, _t) != 0) return false;
+        if (tilemap_get_at_pixel(global.tm_solids, _r, _t) != 0) return false;
+        if (tilemap_get_at_pixel(global.tm_solids, _l, _b) != 0) return false;
+        if (tilemap_get_at_pixel(global.tm_solids, _r, _b) != 0) return false;
+        if (tilemap_get_at_pixel(global.tm_solids, _x, _b) != 0) return false;
     }
 
-    // Check several points around the player's feet.
-    var _l = _x - feet_half_w;
-    var _r = _x + feet_half_w;
-    var _t = _y - feet_half_h;
-    var _b = _y + feet_half_h;
+    // ------------------------------------------------
+    // Solid station / furniture collision
+    // ------------------------------------------------
+    // Temporarily move the player to the test position,
+    // check overlap, then move back.
+    var _old_x = x;
+    var _old_y = y;
 
-    if (tilemap_get_at_pixel(global.tm_solids, _l, _t) != 0) return false;
-    if (tilemap_get_at_pixel(global.tm_solids, _r, _t) != 0) return false;
-    if (tilemap_get_at_pixel(global.tm_solids, _l, _b) != 0) return false;
-    if (tilemap_get_at_pixel(global.tm_solids, _r, _b) != 0) return false;
-    if (tilemap_get_at_pixel(global.tm_solids, _x, _b) != 0) return false;
+    x = _x;
+    y = _y;
+
+    var _blocked = false;
+
+    if (object_exists(oSolidStation))
+    {
+        if (place_meeting(x, y, oSolidStation))
+        {
+            _blocked = true;
+        }
+    }
+
+    x = _old_x;
+    y = _old_y;
+
+    if (_blocked) return false;
 
     return true;
 }
@@ -168,17 +195,71 @@ else
 }
 
 // ----------------------------------------------------
-// Interaction scaffold
+// Find nearest interactable station
 // ----------------------------------------------------
-// Later, stations can register themselves as interactables.
-// For now this just provides the button hook.
-if (interact_key_pressed)
+target_interact = noone;
+
+var _best = noone;
+var _best_d = interact_range;
+
+// Plate Holder
+if (object_exists(oStationPlateHolder))
 {
-    // Placeholder:
-    // This is where you will later call:
-    // scr_player_interact_nearest(id);
-    //
-    // Or stations can check distance to player themselves.
+    var _inst = instance_nearest(x, y, oStationPlateHolder);
+    if (_inst != noone)
+    {
+        var _d = point_distance(x, y, _inst.x, _inst.y);
+        if (_d < _best_d)
+        {
+            _best = _inst;
+            _best_d = _d;
+        }
+    }
+}
+
+// Prep Counter
+if (object_exists(oStationPrepCounter))
+{
+    var _inst2 = instance_nearest(x, y, oStationPrepCounter);
+    if (_inst2 != noone)
+    {
+        var _d2 = point_distance(x, y, _inst2.x, _inst2.y);
+        if (_d2 < _best_d)
+        {
+            _best = _inst2;
+            _best_d = _d2;
+        }
+    }
+}
+
+// Plate Cleaner
+if (object_exists(oStationPlateCleaner))
+{
+    var _inst3 = instance_nearest(x, y, oStationPlateCleaner);
+    if (_inst3 != noone)
+    {
+        var _d3 = point_distance(x, y, _inst3.x, _inst3.y);
+        if (_d3 < _best_d)
+        {
+            _best = _inst3;
+            _best_d = _d3;
+        }
+    }
+}
+
+target_interact = _best;
+
+// ----------------------------------------------------
+// Use nearest station
+// ----------------------------------------------------
+if (interact_key_pressed && target_interact != noone)
+{
+    target_interact.interactor = id;
+
+    with (target_interact)
+    {
+        event_user(0);
+    }
 }
 
 // ----------------------------------------------------
