@@ -11,15 +11,15 @@ if (finished)
 {
     if (finish_lock_timer <= 0 && _p.held_kind == "")
     {
-        _p.held_kind   = finished_kind;
-        _p.held_sprite = finished_sprite;
-        _p.held_image  = 0;
-        _p.held_name   = finished_name;
+        _p.held_kind    = finished_kind;
+        _p.held_sprite  = finished_sprite;
+        _p.held_image   = 0;
+        _p.held_name    = finished_name;
         _p.held_is_food = true;
         _p.held_is_dirty = false;
         _p.held_is_tool = false;
-        _p.held_data   = finished_data;
-        _p.is_carrying = true;
+        _p.held_data    = finished_data;
+        _p.is_carrying  = true;
 
         // Clear counter
         has_plate = false;
@@ -84,20 +84,24 @@ if (has_plate && !has_component)
         component_data   = _p.held_data;
         component_bob    = random(1000);
 
-        _p.held_kind   = "";
-        _p.held_sprite = -1;
-        _p.held_image  = 0;
-        _p.held_name   = "";
+        _p.held_kind    = "";
+        _p.held_sprite  = -1;
+        _p.held_image   = 0;
+        _p.held_name    = "";
         _p.held_is_food = false;
-        _p.held_data   = undefined;
-        _p.is_carrying = false;
+        _p.held_data    = undefined;
+        _p.is_carrying  = false;
 
-        // Check recipe immediately
+        // ------------------------------------------------
+        // Recipe check: Cooked Skewered Rat
+        // ------------------------------------------------
         if (component_kind == "food_rat_cooked")
         {
             if (object_exists(oFXSmokePop))
             {
-                instance_create_layer(x, y - 36, layer, oFXSmokePop);
+                // Use depth, not layer.
+                // This avoids "specified layer (-1) does not exist".
+                instance_create_depth(x, y - 36, depth - 10, oFXSmokePop);
             }
 
             finished = true;
@@ -116,17 +120,24 @@ if (has_plate && !has_component)
 
             finish_lock_timer = 8;
         }
+
+        // ------------------------------------------------
+        // Recipe check: Burnt Skewered Rat
+        // ------------------------------------------------
         else if (component_kind == "food_rat_burnt")
         {
             if (object_exists(oFXSmokePop))
             {
-                instance_create_layer(x, y - 36, layer, oFXSmokePop);
+                // Use depth, not layer.
+                // This avoids "specified layer (-1) does not exist".
+                instance_create_depth(x, y - 36, depth - 10, oFXSmokePop);
             }
 
             finished = true;
             finished_kind = "meal_skewered_rat_burnt";
 
-            // If you have no burnt final sprite yet, use normal final sprite for now.
+            // If you made a burnt final sprite, use it.
+            // If not, fall back to the normal finished rat sprite.
             if (asset_get_index("spriteFoodFinalSkeweredRatBurnt") != -1)
             {
                 finished_sprite = spriteFoodFinalSkeweredRatBurnt;

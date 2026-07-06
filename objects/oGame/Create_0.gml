@@ -20,6 +20,7 @@ global.GAME_H = 360;
 // Orc Kitchen is 64x64 base scale, so this is useful later.
 global.TILE_SIZE = 64;
 
+
 // GUI virtual size.
 // I like 640x360 for now because it matches the game camera.
 // We can move to 800x450 later if UI feels cramped.
@@ -33,6 +34,18 @@ global._appsurf_scale = 1;
 global._appsurf_xoff  = 0;
 global._appsurf_yoff  = 0;
 
+// ----------------------------------------------------
+// Window / fullscreen
+// ----------------------------------------------------
+global.windowed_w = 1280;
+global.windowed_h = 720;
+
+global.is_fullscreen = false;
+
+// Start windowed for development.
+window_set_fullscreen(false);
+window_set_size(global.windowed_w, global.windowed_h);
+window_center();
 // ----------------------------------------------------
 // Runtime state
 // ----------------------------------------------------

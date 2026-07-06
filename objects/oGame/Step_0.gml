@@ -5,6 +5,41 @@
 global.frame += 1;
 
 // ----------------------------------------------------
+// Fullscreen toggle
+// ----------------------------------------------------
+// F11 = toggle fullscreen.
+// Alt + Enter also works as backup.
+var _fullscreen_pressed = false;
+
+if (keyboard_check_pressed(vk_f11))
+{
+    _fullscreen_pressed = true;
+}
+
+if (keyboard_check(vk_alt) && keyboard_check_pressed(vk_enter))
+{
+    _fullscreen_pressed = true;
+}
+
+if (_fullscreen_pressed)
+{
+    global.is_fullscreen = !window_get_fullscreen();
+
+    window_set_fullscreen(global.is_fullscreen);
+
+    if (!global.is_fullscreen)
+    {
+        // Restore nice development window size.
+        window_set_size(global.windowed_w, global.windowed_h);
+        window_center();
+    }
+
+    display_set_gui_size(global.GUI_W, global.GUI_H);
+
+    show_debug_message("[oGame] Fullscreen: " + string(global.is_fullscreen));
+}
+
+// ----------------------------------------------------
 // Pause toggle
 // ----------------------------------------------------
 var _pause_pressed = false;
