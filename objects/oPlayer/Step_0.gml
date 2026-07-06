@@ -4,8 +4,6 @@
 // ----------------------------------------------------
 // Local helper: checks whether the player's feet area is clear
 // ----------------------------------------------------
-// Local helper: checks whether the player's feet area is clear
-// ----------------------------------------------------
 function __orc_can_stand_at(_x, _y)
 {
     // ------------------------------------------------
@@ -161,6 +159,7 @@ if (!is_busy && !is_stunned)
             var _sy = sign(_my);
             repeat (abs(round(_my)))
             {
+                if (__orc_can_stand_at(x, y + _sy)) x = x; // harmless no-op, keeps block stable
                 if (__orc_can_stand_at(x, y + _sy)) y += _sy;
                 else break;
             }
@@ -243,6 +242,36 @@ if (object_exists(oStationPlateCleaner))
         {
             _best = _inst3;
             _best_d = _d3;
+        }
+    }
+}
+
+// Meat Rack
+if (object_exists(oStationMeatRack))
+{
+    var _inst4 = instance_nearest(x, y, oStationMeatRack);
+    if (_inst4 != noone)
+    {
+        var _d4 = point_distance(x, y, _inst4.x, _inst4.y);
+        if (_d4 < _best_d)
+        {
+            _best = _inst4;
+            _best_d = _d4;
+        }
+    }
+}
+
+// Grill
+if (object_exists(oStationGrill))
+{
+    var _inst5 = instance_nearest(x, y, oStationGrill);
+    if (_inst5 != noone)
+    {
+        var _d5 = point_distance(x, y, _inst5.x, _inst5.y);
+        if (_d5 < _best_d)
+        {
+            _best = _inst5;
+            _best_d = _d5;
         }
     }
 }

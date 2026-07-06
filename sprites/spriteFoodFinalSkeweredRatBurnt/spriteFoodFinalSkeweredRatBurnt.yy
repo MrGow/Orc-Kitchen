@@ -1,6 +1,6 @@
 {
   "$GMSprite":"v2",
-  "%Name":"spriteFoodRatCooked",
+  "%Name":"spriteFoodFinalSkeweredRatBurnt",
   "bboxMode":0,
   "bbox_bottom":63,
   "bbox_left":0,
@@ -12,16 +12,16 @@
   "edgeFiltering":false,
   "For3D":false,
   "frames":[
-    {"$GMSpriteFrame":"v1","%Name":"4ddbe76a-b284-4ed1-b745-fe0d8a7947d6","name":"4ddbe76a-b284-4ed1-b745-fe0d8a7947d6","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
+    {"$GMSpriteFrame":"v1","%Name":"86efad2e-17b0-4f92-acac-4c0ee9f6a852","name":"86efad2e-17b0-4f92-acac-4c0ee9f6a852","resourceType":"GMSpriteFrame","resourceVersion":"2.0",},
   ],
   "gridX":0,
   "gridY":0,
   "height":64,
   "HTile":false,
   "layers":[
-    {"$GMImageLayer":"","%Name":"3e3f52e9-5f13-4403-8dd2-bc2e89ec029d","blendMode":0,"displayName":"default","isLocked":false,"name":"3e3f52e9-5f13-4403-8dd2-bc2e89ec029d","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
+    {"$GMImageLayer":"","%Name":"cbe69c95-4c36-431f-bc4f-36bb75e88a31","blendMode":0,"displayName":"default","isLocked":false,"name":"cbe69c95-4c36-431f-bc4f-36bb75e88a31","opacity":100.0,"resourceType":"GMImageLayer","resourceVersion":"2.0","visible":true,},
   ],
-  "name":"spriteFoodRatCooked",
+  "name":"spriteFoodFinalSkeweredRatBurnt",
   "nineSlice":null,
   "origin":0,
   "parent":{
@@ -33,7 +33,7 @@
   "resourceVersion":"2.0",
   "sequence":{
     "$GMSequence":"v1",
-    "%Name":"spriteFoodRatCooked",
+    "%Name":"spriteFoodFinalSkeweredRatBurnt",
     "autoRecord":true,
     "backdropHeight":768,
     "backdropImageOpacity":0.5,
@@ -57,7 +57,7 @@
       "resourceType":"KeyframeStore<MomentsEventKeyframe>",
       "resourceVersion":"2.0",
     },
-    "name":"spriteFoodRatCooked",
+    "name":"spriteFoodFinalSkeweredRatBurnt",
     "playback":1,
     "playbackSpeed":30.0,
     "playbackSpeedType":0,
@@ -69,8 +69,8 @@
     "tracks":[
       {"$GMSpriteFramesTrack":"","builtinName":0,"events":[],"inheritsTrackColour":true,"interpolation":1,"isCreationTrack":false,"keyframes":{"$KeyframeStore<SpriteFrameKeyframe>":"","Keyframes":[
             {"$Keyframe<SpriteFrameKeyframe>":"","Channels":{
-                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"4ddbe76a-b284-4ed1-b745-fe0d8a7947d6","path":"sprites/spriteFoodRatCooked/spriteFoodRatCooked.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
-              },"Disabled":false,"id":"502f2737-c2dd-4b49-8295-b48dd9a58afa","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
+                "0":{"$SpriteFrameKeyframe":"","Id":{"name":"86efad2e-17b0-4f92-acac-4c0ee9f6a852","path":"sprites/spriteFoodFinalSkeweredRatBurnt/spriteFoodFinalSkeweredRatBurnt.yy",},"resourceType":"SpriteFrameKeyframe","resourceVersion":"2.0",},
+              },"Disabled":false,"id":"45dd28fa-13d1-4332-aec2-5a3ebb7487eb","IsCreationKey":false,"Key":0.0,"Length":1.0,"resourceType":"Keyframe<SpriteFrameKeyframe>","resourceVersion":"2.0","Stretch":false,},
           ],"resourceType":"KeyframeStore<SpriteFrameKeyframe>","resourceVersion":"2.0",},"modifiers":[],"name":"frames","resourceType":"GMSpriteFramesTrack","resourceVersion":"2.0","spriteId":null,"trackColour":0,"tracks":[],"traits":0,},
     ],
     "visibleRange":null,
