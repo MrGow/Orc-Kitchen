@@ -11,9 +11,9 @@
   "defaultScriptType":1,
   "Folders":[
     {"$GMFolder":"","%Name":"Objects","folderPath":"folders/Objects.yy","name":"Objects","resourceType":"GMFolder","resourceVersion":"2.0",},
+    {"$GMFolder":"","%Name":"Chair and Table Objects","folderPath":"folders/Objects/Chair and Table Objects.yy","name":"Chair and Table Objects","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"ControllerObjects","folderPath":"folders/Objects/ControllerObjects.yy","name":"ControllerObjects","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"FoodObjects","folderPath":"folders/Objects/FoodObjects.yy","name":"FoodObjects","resourceType":"GMFolder","resourceVersion":"2.0",},
-    {"$GMFolder":"","%Name":"Chair and Table Objects","folderPath":"folders/Objects/Chair and Table Objects.yy","name":"Chair and Table Objects","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"PlateObjects","folderPath":"folders/Objects/PlateObjects.yy","name":"PlateObjects","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"PlayerCharacterObjects","folderPath":"folders/Objects/PlayerCharacterObjects.yy","name":"PlayerCharacterObjects","resourceType":"GMFolder","resourceVersion":"2.0",},
     {"$GMFolder":"","%Name":"StationObjects","folderPath":"folders/Objects/StationObjects.yy","name":"StationObjects","resourceType":"GMFolder","resourceVersion":"2.0",},
