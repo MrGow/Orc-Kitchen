@@ -1,5 +1,5 @@
 /// oPlayer — Step Event
-// Top-down movement + basic collision + station interaction
+// Top-down movement + basic collision + station/table interaction
 
 // ----------------------------------------------------
 // Local helper: checks whether the player's feet area is clear
@@ -117,7 +117,7 @@ if (gamepad_is_connected(_gp))
 // ----------------------------------------------------
 // Movement
 // ----------------------------------------------------
-if (!is_busy && !is_stunned)
+if (!is_busy && !is_stunned && global.player_can_move)
 {
     var _spd = move_spd;
 
@@ -159,7 +159,6 @@ if (!is_busy && !is_stunned)
             var _sy = sign(_my);
             repeat (abs(round(_my)))
             {
-                if (__orc_can_stand_at(x, y + _sy)) x = x; // harmless no-op, keeps block stable
                 if (__orc_can_stand_at(x, y + _sy)) y += _sy;
                 else break;
             }
@@ -194,7 +193,7 @@ else
 }
 
 // ----------------------------------------------------
-// Find nearest interactable station
+// Find nearest interactable station/table
 // ----------------------------------------------------
 target_interact = noone;
 
@@ -276,12 +275,42 @@ if (object_exists(oStationGrill))
     }
 }
 
+// Gobble-Toad
+if (object_exists(oStationGobbleToad))
+{
+    var _inst7 = instance_nearest(x, y, oStationGobbleToad);
+    if (_inst7 != noone)
+    {
+        var _d7 = point_distance(x, y, _inst7.x, _inst7.y);
+        if (_d7 < _best_d)
+        {
+            _best = _inst7;
+            _best_d = _d7;
+        }
+    }
+}
+
+// Table Parent
+if (object_exists(oTableParent))
+{
+    var _inst6 = instance_nearest(x, y, oTableParent);
+    if (_inst6 != noone)
+    {
+        var _d6 = point_distance(x, y, _inst6.x, _inst6.y);
+        if (_d6 < _best_d)
+        {
+            _best = _inst6;
+            _best_d = _d6;
+        }
+    }
+}
+
 target_interact = _best;
 
 // ----------------------------------------------------
-// Use nearest station
+// Use nearest station/table
 // ----------------------------------------------------
-if (interact_key_pressed && target_interact != noone)
+if (interact_key_pressed && target_interact != noone && global.player_can_interact)
 {
     target_interact.interactor = id;
 

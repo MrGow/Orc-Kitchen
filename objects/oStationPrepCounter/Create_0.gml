@@ -14,7 +14,9 @@ plate_name = "";
 plate_data = undefined;
 
 // ----------------------------------------------------
-// Loose component on the plate/counter
+// Loose component on the counter
+// For now this supports one loose food item.
+// Later we can turn this into an array for burgers/pizzas.
 // ----------------------------------------------------
 has_component = false;
 component_kind = "";
@@ -35,10 +37,10 @@ finished_data = undefined;
 // ----------------------------------------------------
 // Draw positions
 // ----------------------------------------------------
-plate_draw_xoff = 0;
+plate_draw_xoff = -18;
 plate_draw_yoff = -34;
 
-component_draw_xoff = 18;
+component_draw_xoff = 22;
 component_draw_yoff = -38;
 
 finished_draw_xoff = 0;

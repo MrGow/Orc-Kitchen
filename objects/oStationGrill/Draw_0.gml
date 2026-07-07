@@ -2,7 +2,9 @@
 
 draw_self();
 
-// Draw food on grill
+// ----------------------------------------------------
+// Food sprite
+// ----------------------------------------------------
 if (has_food && food_sprite != -1)
 {
     draw_sprite(
@@ -13,7 +15,9 @@ if (has_food && food_sprite != -1)
     );
 }
 
-// Progress bar
+// ----------------------------------------------------
+// Cook progress bar
+// ----------------------------------------------------
 if (has_food)
 {
     var _bar_w = 72;
@@ -26,9 +30,28 @@ if (has_food)
     draw_set_color(c_black);
     draw_rectangle(_xx, _yy, _xx + _bar_w, _yy + _bar_h, false);
 
-    if (cook_state == "raw") draw_set_color(c_yellow);
-    else if (cook_state == "cooked") draw_set_color(c_lime);
-    else if (cook_state == "burnt") draw_set_color(c_red);
+    if (cook_state == "raw")
+    {
+        draw_set_color(c_yellow);
+    }
+    else if (cook_state == "cooked")
+    {
+        draw_set_color(c_lime);
+    }
+    else if (cook_state == "burnt")
+    {
+        draw_set_color(c_red);
+    }
+    else
+    {
+        draw_set_color(c_white);
+    }
 
     draw_rectangle(_xx, _yy, _xx + _bar_w * _p, _yy + _bar_h, false);
 }
+
+// ----------------------------------------------------
+// Reset draw state
+// ----------------------------------------------------
+draw_set_color(c_white);
+draw_set_alpha(1);

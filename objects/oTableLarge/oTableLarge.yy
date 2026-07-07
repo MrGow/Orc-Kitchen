@@ -1,15 +1,18 @@
 {
   "$GMObject":"",
-  "%Name":"oTable",
+  "%Name":"oTableLarge",
   "eventList":[],
   "managed":true,
-  "name":"oTable",
+  "name":"oTableLarge",
   "overriddenProperties":[],
   "parent":{
     "name":"Chair and Table Objects",
     "path":"folders/Objects/Chair and Table Objects.yy",
   },
-  "parentObjectId":null,
+  "parentObjectId":{
+    "name":"oTableParent",
+    "path":"objects/oTableParent/oTableParent.yy",
+  },
   "persistent":false,
   "physicsAngularDamping":0.1,
   "physicsDensity":0.5,
@@ -28,8 +31,8 @@
   "resourceVersion":"2.0",
   "solid":false,
   "spriteId":{
-    "name":"spriteTable",
-    "path":"sprites/spriteTable/spriteTable.yy",
+    "name":"spriteTableLarge",
+    "path":"sprites/spriteTableLarge/spriteTableLarge.yy",
   },
   "spriteMaskId":null,
   "visible":true,

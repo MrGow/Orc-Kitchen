@@ -20,10 +20,8 @@ global.GAME_H = 360;
 // Orc Kitchen is 64x64 base scale, so this is useful later.
 global.TILE_SIZE = 64;
 
-
 // GUI virtual size.
-// I like 640x360 for now because it matches the game camera.
-// We can move to 800x450 later if UI feels cramped.
+// 640x360 matches the current game camera.
 global.GUI_W = 640;
 global.GUI_H = 360;
 
@@ -46,6 +44,7 @@ global.is_fullscreen = false;
 window_set_fullscreen(false);
 window_set_size(global.windowed_w, global.windowed_h);
 window_center();
+
 // ----------------------------------------------------
 // Runtime state
 // ----------------------------------------------------
@@ -55,20 +54,11 @@ global.paused = false;
 global.debug_mode = true;
 
 // Main high-level state.
-// Good starter values:
-// "boot"
-// "kitchen"
-// "shift_end"
-// "home"
-// "shop"
-// "sleep"
+// "boot", "kitchen", "shift_end", "home", "shop", "sleep"
 global.game_state = "kitchen";
 
 // Shift state.
-// "prep"    = before customers start
-// "serving" = active shift
-// "cleanup" = after last customer
-// "ended"   = report screen / leave kitchen
+// "prep", "serving", "cleanup", "ended"
 global.shift_state = "prep";
 
 global.day = 1;
@@ -86,6 +76,13 @@ global.shift_ingredient_costs = 0;
 global.shift_repair_costs = 0;
 global.shift_wages = 0;
 global.shift_net_profit = 0;
+
+// ----------------------------------------------------
+// Waste stats
+// ----------------------------------------------------
+// Increased by oStationGobbleToad when food is discarded.
+global.food_wasted = 0;
+global.waste_cost = 0;
 
 // ----------------------------------------------------
 // Customer / order tracking
@@ -167,7 +164,6 @@ global.wash_time = {
 // ----------------------------------------------------
 // Ingredients / stock
 // ----------------------------------------------------
-// Starter stock. Keep this tiny at first.
 global.ingredients_stock = {
     skewered_rat : 12,
     bat_wings    : 8,
@@ -193,7 +189,6 @@ global.recipes_unlocked = {
 };
 
 // Basic recipe values.
-// We can move this into a script later once recipes become larger.
 global.recipe_value = {
     skewered_rat : 8,
     bat_wings    : 10,
@@ -214,7 +209,8 @@ global.station_unlocked = {
     garnish_station : true,
     drink_barrel    : true,
     wash_station    : true,
-    tool_rack       : false
+    tool_rack       : false,
+    gobble_toad     : true
 };
 
 global.station_level = {
@@ -227,7 +223,8 @@ global.station_level = {
     garnish_station : 1,
     drink_barrel    : 1,
     wash_station    : 1,
-    tool_rack       : 0
+    tool_rack       : 0,
+    gobble_toad     : 1
 };
 
 // Station slot counts.
@@ -242,8 +239,6 @@ global.station_slots = {
 // ----------------------------------------------------
 // Cook / prep state names
 // ----------------------------------------------------
-// These are strings for readability.
-// Later, if desired, we can convert them to enums.
 global.cook_states = [
     "raw",
     "lightly_cooked",
@@ -319,6 +314,16 @@ global.show_station_labels = false;
 // Current held item is better stored on oPlayer,
 // but this global is useful for debugging early on.
 global.debug_player_holding = "nothing";
+
+// ----------------------------------------------------
+// Recipe Menu / Cookbook
+// ----------------------------------------------------
+global.recipe_menu_open = false;
+global.recipe_menu_index = 0;
+
+// Used so the recipe menu can pause the game without confusing
+// the normal pause button too much.
+global.recipe_menu_was_open = false;
 
 // ----------------------------------------------------
 // Shift report starter

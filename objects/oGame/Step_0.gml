@@ -5,6 +5,52 @@
 global.frame += 1;
 
 // ----------------------------------------------------
+// Recipe menu toggle
+// ----------------------------------------------------
+// R = keyboard recipe book
+// Xbox Select/View = controller recipe book
+var _gp = 0;
+
+var _recipe_pressed = keyboard_check_pressed(ord("R"));
+
+if (gamepad_is_connected(_gp))
+{
+    if (gamepad_button_check_pressed(_gp, gp_select))
+    {
+        _recipe_pressed = true;
+    }
+}
+
+if (_recipe_pressed)
+{
+    global.recipe_menu_open = !global.recipe_menu_open;
+
+    if (global.recipe_menu_open)
+    {
+        global.recipe_menu_was_open = true;
+        global.paused = true;
+        global.player_can_move = false;
+        global.player_can_interact = false;
+    }
+    else
+    {
+        global.recipe_menu_was_open = false;
+        global.paused = false;
+        global.player_can_move = true;
+        global.player_can_interact = true;
+    }
+}
+
+// While recipe menu is open, freeze gameplay logic.
+if (global.recipe_menu_open)
+{
+    global.paused = true;
+    global.player_can_move = false;
+    global.player_can_interact = false;
+    exit;
+}
+
+// ----------------------------------------------------
 // Fullscreen toggle
 // ----------------------------------------------------
 // F11 = toggle fullscreen.
