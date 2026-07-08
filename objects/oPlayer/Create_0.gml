@@ -8,8 +8,6 @@
 sprite_index = spriteMainOrcIdle;
 image_speed  = 0.15;
 
-interact_range = 80;
-
 // ----------------------------------------------------
 // Movement
 // ----------------------------------------------------
@@ -47,7 +45,9 @@ if (!variable_global_exists("tm_solids"))
 // ----------------------------------------------------
 // Interaction
 // ----------------------------------------------------
-interact_range = 56;
+// 96 works better now that tables are large and use top/bottom seats.
+interact_range = 96;
+
 interact_key_pressed = false;
 
 // The nearest thing we could interact with.

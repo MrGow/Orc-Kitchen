@@ -71,8 +71,7 @@ if (!has_plate && has_component && _p.held_kind == "")
 }
 
 // ----------------------------------------------------
-// Remove plain plate from prep counter
-// This fixes wrong-plate softlock.
+// Remove plain plate from prep counter.
 // Only allowed if there is no component yet.
 // ----------------------------------------------------
 if (has_plate && !has_component && _p.held_kind == "")
@@ -97,7 +96,7 @@ if (has_plate && !has_component && _p.held_kind == "")
 }
 
 // ----------------------------------------------------
-// Place clean plate on counter
+// Place clean plate on counter.
 // Works whether or not a cooked component is already there.
 // ----------------------------------------------------
 if (!has_plate && _p.held_kind == "plate_clean")
@@ -120,8 +119,8 @@ if (!has_plate && _p.held_kind == "plate_clean")
     _p.is_carrying   = false;
 
     // ------------------------------------------------
-    // Recipe check after placing plate
-    // This catches: cooked rat first, plate second.
+    // Recipe check after placing plate.
+    // This catches: cooked/burnt rat first, plate second.
     // ------------------------------------------------
     if (has_component)
     {
@@ -157,14 +156,7 @@ if (!has_plate && _p.held_kind == "plate_clean")
 
             finished = true;
             finished_kind = "meal_skewered_rat_burnt";
-
-            var _burnt_sprite = asset_get_index("spriteFoodFinalSkeweredRatBurnt");
-            if (_burnt_sprite == -1)
-            {
-                _burnt_sprite = spriteFoodFinalSkeweredRat;
-            }
-
-            finished_sprite = _burnt_sprite;
+            finished_sprite = spriteFoodFinalSkeweredRatBurnt;
             finished_name = "Burnt Skewered Rat";
 
             finished_data = {
@@ -173,7 +165,7 @@ if (!has_plate && _p.held_kind == "plate_clean")
                 cook_state: "burnt",
                 topping: "",
                 quality: 0.35,
-                sprite: finished_sprite
+                sprite: spriteFoodFinalSkeweredRatBurnt
             };
 
             finish_lock_timer = 8;
@@ -184,7 +176,7 @@ if (!has_plate && _p.held_kind == "plate_clean")
 }
 
 // ----------------------------------------------------
-// Place cooked or burnt rat on counter
+// Place cooked or burnt rat on counter.
 // Works whether or not a plate is already there.
 // ----------------------------------------------------
 if (!has_component)
@@ -210,8 +202,8 @@ if (!has_component)
         _p.is_carrying   = false;
 
         // ------------------------------------------------
-        // Recipe check after placing component
-        // This catches: plate first, cooked rat second.
+        // Recipe check after placing component.
+        // This catches: plate first, cooked/burnt rat second.
         // ------------------------------------------------
         if (has_plate)
         {
@@ -247,14 +239,7 @@ if (!has_component)
 
                 finished = true;
                 finished_kind = "meal_skewered_rat_burnt";
-
-                var _burnt_sprite_2 = asset_get_index("spriteFoodFinalSkeweredRatBurnt");
-                if (_burnt_sprite_2 == -1)
-                {
-                    _burnt_sprite_2 = spriteFoodFinalSkeweredRat;
-                }
-
-                finished_sprite = _burnt_sprite_2;
+                finished_sprite = spriteFoodFinalSkeweredRatBurnt;
                 finished_name = "Burnt Skewered Rat";
 
                 finished_data = {
@@ -263,7 +248,7 @@ if (!has_component)
                     cook_state: "burnt",
                     topping: "",
                     quality: 0.35,
-                    sprite: finished_sprite
+                    sprite: spriteFoodFinalSkeweredRatBurnt
                 };
 
                 finish_lock_timer = 8;

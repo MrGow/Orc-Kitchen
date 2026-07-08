@@ -23,7 +23,7 @@
   ],
   "name":"spriteStationMeatRack",
   "nineSlice":null,
-  "origin":7,
+  "origin":4,
   "parent":{
     "name":"spriteStations",
     "path":"folders/Sprites/spriteStations.yy",
@@ -76,7 +76,7 @@
     "visibleRange":null,
     "volume":1.0,
     "xorigin":64,
-    "yorigin":96,
+    "yorigin":48,
   },
   "swatchColours":null,
   "swfPrecision":0.5,

@@ -290,17 +290,44 @@ if (object_exists(oStationGobbleToad))
     }
 }
 
+// ----------------------------------------------------
 // Table Parent
+// ----------------------------------------------------
+// Tables are special because their origin is middle-bottom.
+// So we check distance to every seat/plate point instead of table origin.
+// This lets the player serve top-side and bottom-side customers.
 if (object_exists(oTableParent))
 {
-    var _inst6 = instance_nearest(x, y, oTableParent);
-    if (_inst6 != noone)
+    var _table_count = instance_number(oTableParent);
+
+    for (var _tn = 0; _tn < _table_count; _tn++)
     {
-        var _d6 = point_distance(x, y, _inst6.x, _inst6.y);
-        if (_d6 < _best_d)
+        var _tbl = instance_find(oTableParent, _tn);
+        if (_tbl == noone) continue;
+
+        // Safety: only check tables that have finished their Create Event.
+        if (!variable_instance_exists(_tbl, "seat_count")) continue;
+        if (!variable_instance_exists(_tbl, "seat_xoff")) continue;
+        if (!variable_instance_exists(_tbl, "plate_xoff")) continue;
+
+        for (var _si = 0; _si < _tbl.seat_count; _si++)
         {
-            _best = _inst6;
-            _best_d = _d6;
+            var _plate_x = _tbl.x + _tbl.plate_xoff[_si];
+            var _plate_y = _tbl.y + _tbl.plate_yoff[_si];
+
+            var _seat_x = _tbl.x + _tbl.seat_xoff[_si];
+            var _seat_y = _tbl.y + _tbl.seat_yoff[_si];
+
+            var _d_plate = point_distance(x, y, _plate_x, _plate_y);
+            var _d_seat  = point_distance(x, y, _seat_x, _seat_y);
+
+            var _d_table = min(_d_plate, _d_seat);
+
+            if (_d_table < _best_d)
+            {
+                _best = _tbl;
+                _best_d = _d_table;
+            }
         }
     }
 }
