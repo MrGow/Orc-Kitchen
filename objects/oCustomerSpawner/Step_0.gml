@@ -4,10 +4,10 @@ if (global.paused) exit;
 
 if (spawned_count >= max_spawned_for_test) exit;
 
+// For queue testing, this should be higher than table seats.
 if (global.active_customers >= global.max_customers) exit;
 
 spawn_timer -= 1;
-
 if (spawn_timer > 0) exit;
 
 // ----------------------------------------------------
@@ -16,55 +16,79 @@ if (spawn_timer > 0) exit;
 var _found_table = noone;
 var _found_seat = -1;
 
-// Helper search through table instances.
-// We search each table object type directly.
-var _table_types = [oTableMedium, oTableLarge, oTableSmall];
-
-for (var t = 0; t < array_length(_table_types); t++)
+if (object_exists(oTableParent))
 {
-    var _obj = _table_types[t];
+    var _table_count = instance_number(oTableParent);
 
-    if (!object_exists(_obj)) continue;
-
-    var _count = instance_number(_obj);
-
-    for (var n = 0; n < _count; n++)
+    for (var t = 0; t < _table_count; t++)
     {
-        var _tbl = instance_find(_obj, n);
-
+        var _tbl = instance_find(oTableParent, t);
         if (_tbl == noone) continue;
 
-        for (var i = 0; i < _tbl.seat_count; i++)
+        // Future purchase support.
+        var _available = true;
+        if (variable_instance_exists(_tbl, "available"))
+        {
+            _available = _tbl.available;
+        }
+
+        if (!_available) continue;
+
+        for (var s = 0; s < _tbl.seat_count; s++)
         {
             var _free =
-                _tbl.seat_customer[i] == noone
-                && !_tbl.seat_reserved[i]
-                && !_tbl.seat_has_dirty_plate[i]
-                && !_tbl.seat_has_food[i];
+                _tbl.seat_customer[s] == noone
+                && !_tbl.seat_reserved[s]
+                && !_tbl.seat_has_dirty_plate[s]
+                && !_tbl.seat_has_food[s];
 
             if (_free)
             {
                 _found_table = _tbl;
-                _found_seat = i;
+                _found_seat = s;
                 break;
             }
         }
 
         if (_found_table != noone) break;
     }
-
-    if (_found_table != noone) break;
 }
 
 // ----------------------------------------------------
-// Spawn customer if a seat was found
+// If no seat, find queue slot
+// ----------------------------------------------------
+var _found_queue = noone;
+var _found_queue_slot = -1;
+
+if (_found_table == noone && object_exists(oCustomerQueueSpot))
+{
+    var _queue = instance_find(oCustomerQueueSpot, 0);
+
+    if (_queue != noone)
+    {
+        for (var q = 0; q < _queue.slot_count; q++)
+        {
+            if (_queue.queue_customer[q] == noone)
+            {
+                _found_queue = _queue;
+                _found_queue_slot = q;
+                break;
+            }
+        }
+    }
+}
+
+// ----------------------------------------------------
+// Spawn customer
 // ----------------------------------------------------
 if (_found_table != noone && _found_seat != -1)
 {
-    // Reserve seat immediately so another customer cannot take it.
     _found_table.seat_reserved[_found_seat] = true;
 
     var _c = instance_create_depth(x, y, -y, oCustomer);
+
+    _c.spawn_x = x;
+    _c.spawn_y = y;
 
     _c.target_table = _found_table;
     _c.target_seat = _found_seat;
@@ -81,17 +105,41 @@ if (_found_table != noone && _found_seat != -1)
 
     if (debug_spawner)
     {
-        show_debug_message(
-            "[CustomerSpawner] Spawned customer. Seat: "
-            + string(_found_seat)
-        );
+        show_debug_message("[CustomerSpawner] Spawned customer to table seat " + string(_found_seat));
+    }
+}
+else if (_found_queue != noone && _found_queue_slot != -1)
+{
+    var _cq = instance_create_depth(x, y, -y, oCustomer);
+
+    _cq.spawn_x = x;
+    _cq.spawn_y = y;
+
+    _cq.state = "walking_to_queue";
+
+    _cq.target_queue = _found_queue;
+    _cq.queue_index = _found_queue_slot;
+    _cq.queue_x = _found_queue.x + _found_queue.slot_xoff[_found_queue_slot];
+    _cq.queue_y = _found_queue.y + _found_queue.slot_yoff[_found_queue_slot];
+
+    _found_queue.queue_customer[_found_queue_slot] = _cq;
+
+    global.active_customers += 1;
+    global.customers_spawned += 1;
+    global.customer_queue_length += 1;
+
+    spawned_count += 1;
+
+    if (debug_spawner)
+    {
+        show_debug_message("[CustomerSpawner] Spawned customer to queue slot " + string(_found_queue_slot));
     }
 }
 else
 {
     if (debug_spawner)
     {
-        show_debug_message("[CustomerSpawner] No free table seat found.");
+        show_debug_message("[CustomerSpawner] No free seat or queue slot.");
     }
 }
 

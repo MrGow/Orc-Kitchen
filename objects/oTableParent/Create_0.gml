@@ -4,6 +4,14 @@ station_name = "Table";
 
 interactor = noone;
 
+// Future shop/buy support.
+// Bought/active tables should be available=true.
+// Locked future tables can be placed in the room with available=false.
+if (!variable_instance_exists(id, "available"))
+{
+    available = true;
+}
+
 // ----------------------------------------------------
 // Table type / seats
 // ----------------------------------------------------

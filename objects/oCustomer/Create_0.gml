@@ -10,11 +10,25 @@ state = "walking_to_table";
 
 move_spd = 1.25;
 
+// Small collision footprint, similar to player.
+feet_half_w = 9;
+feet_half_h = 6;
+
 target_table = noone;
 target_seat = -1;
 
 sit_x = x;
 sit_y = y;
+
+// Queue
+target_queue = noone;
+queue_index = -1;
+queue_x = x;
+queue_y = y;
+
+// Spawn/exit
+spawn_x = x;
+spawn_y = y;
 
 // ----------------------------------------------------
 // Order
@@ -43,12 +57,14 @@ patience = room_speed * 45;
 satisfaction = 100;
 
 eat_timer = 0;
-leave_timer = 0;
 
 reaction_text = "";
 reaction_timer = 0;
 
 pay_amount = 0;
+
+// Prevent active_customers decrementing twice.
+has_left_counted = false;
 
 // Depth sorting
 depth = -y;

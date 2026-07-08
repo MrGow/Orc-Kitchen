@@ -3,7 +3,7 @@
 draw_self();
 
 // ----------------------------------------------------
-// Order bubble / reaction bubble
+// Order / queue / reaction bubble
 // ----------------------------------------------------
 draw_set_halign(fa_center);
 draw_set_valign(fa_middle);
@@ -11,16 +11,21 @@ draw_set_valign(fa_middle);
 var _bubble_x = x;
 var _bubble_y = y - 58;
 
+// Queued marker
+if (state == "queued" || state == "walking_to_queue")
+{
+    draw_set_color(c_white);
+    draw_text(_bubble_x, _bubble_y, "WAIT");
+}
+
 // Waiting order
 if (state == "seated")
 {
-    // Bubble background
     draw_set_color(c_black);
     draw_set_alpha(0.65);
     draw_roundrect(_bubble_x - 24, _bubble_y - 24, _bubble_x + 24, _bubble_y + 24, false);
     draw_set_alpha(1);
 
-    // Food icon
     if (order_sprite != -1)
     {
         draw_sprite(order_sprite, 0, _bubble_x, _bubble_y);
