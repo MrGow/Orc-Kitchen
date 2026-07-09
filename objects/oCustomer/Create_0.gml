@@ -1,6 +1,6 @@
 /// oCustomer — Create Event
 
-sprite_index = spriteMainOrcIdle;
+sprite_index = spriteMainOrcWalk;
 image_speed = 0.12;
 
 // ----------------------------------------------------
@@ -29,6 +29,20 @@ queue_y = y;
 // Spawn/exit
 spawn_x = x;
 spawn_y = y;
+
+// ----------------------------------------------------
+// Simple waypoint route
+// ----------------------------------------------------
+route_points = [];
+route_index = 0;
+
+// If a route gets stuck, we flip which side of the table we try to use.
+route_side_flip = false;
+
+// Used to detect if customer is stuck.
+stuck_timer = 0;
+last_x = x;
+last_y = y;
 
 // ----------------------------------------------------
 // Order

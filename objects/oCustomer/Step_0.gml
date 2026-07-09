@@ -59,7 +59,7 @@ function __customer_move_to(_tx, _ty, _spd)
     if (abs(_mx) > abs(_tx - x)) _mx = _tx - x;
     if (abs(_my) > abs(_ty - y)) _my = _ty - y;
 
-    // X movement
+    // Move X first.
     if (_mx != 0)
     {
         if (__customer_can_stand_at(x + _mx, y))
@@ -69,15 +69,22 @@ function __customer_move_to(_tx, _ty, _spd)
         else
         {
             var _sx = sign(_mx);
+
             repeat (abs(round(_mx)))
             {
-                if (__customer_can_stand_at(x + _sx, y)) x += _sx;
-                else break;
+                if (__customer_can_stand_at(x + _sx, y))
+                {
+                    x += _sx;
+                }
+                else
+                {
+                    break;
+                }
             }
         }
     }
 
-    // Y movement
+    // Then move Y.
     if (_my != 0)
     {
         if (__customer_can_stand_at(x, y + _my))
@@ -87,15 +94,230 @@ function __customer_move_to(_tx, _ty, _spd)
         else
         {
             var _sy = sign(_my);
+
             repeat (abs(round(_my)))
             {
-                if (__customer_can_stand_at(x, y + _sy)) y += _sy;
-                else break;
+                if (__customer_can_stand_at(x, y + _sy))
+                {
+                    y += _sy;
+                }
+                else
+                {
+                    break;
+                }
             }
         }
     }
 
     return false;
+}
+
+// ----------------------------------------------------
+// Route helpers
+// ----------------------------------------------------
+function __customer_clear_path()
+{
+    route_points = [];
+    route_index = 0;
+}
+
+function __customer_add_path_point(_x, _y)
+{
+    array_push(route_points, { x: _x, y: _y });
+}
+
+function __customer_get_seat_facing(_tbl, _s)
+{
+    var _facing = "up";
+
+    if (_tbl != noone && instance_exists(_tbl))
+    {
+        if (variable_instance_exists(_tbl, "seat_facing"))
+        {
+            if (is_array(_tbl.seat_facing))
+            {
+                if (_s >= 0 && _s < array_length(_tbl.seat_facing))
+                {
+                    _facing = _tbl.seat_facing[_s];
+                }
+            }
+        }
+    }
+
+    return _facing;
+}
+
+// ----------------------------------------------------
+// Build route to assigned table seat
+// ----------------------------------------------------
+function __customer_build_table_path()
+{
+    __customer_clear_path();
+
+    if (target_table == noone || !instance_exists(target_table)) exit;
+
+    var _tbl = target_table;
+    var _s = target_seat;
+
+    if (_s < 0 || _s >= _tbl.seat_count) exit;
+
+    var _seat_x = _tbl.x + _tbl.seat_xoff[_s];
+    var _seat_y = _tbl.y + _tbl.seat_yoff[_s];
+
+    var _facing = __customer_get_seat_facing(_tbl, _s);
+
+    var _tw = sprite_get_width(_tbl.sprite_index);
+    var _th = sprite_get_height(_tbl.sprite_index);
+
+    // ------------------------------------------------
+    // Pick a side/aisle point.
+    // Normally use the side closest to where the customer currently is.
+    // If stuck, route_side_flip swaps side.
+    // ------------------------------------------------
+    var _side_x;
+
+    var _normally_left = (x < _tbl.x);
+
+    if (route_side_flip)
+    {
+        _normally_left = !_normally_left;
+    }
+
+    if (_normally_left)
+    {
+        _side_x = _tbl.x - _tw * 0.5 - 40;
+    }
+    else
+    {
+        _side_x = _tbl.x + _tw * 0.5 + 40;
+    }
+
+    // ------------------------------------------------
+    // Approach from correct seating side.
+    // Top seats approach from above table.
+    // Bottom seats approach from below table.
+    // ------------------------------------------------
+    var _approach_x = _seat_x;
+    var _approach_y = _seat_y;
+
+    if (_facing == "down")
+    {
+        // Top-side seat: customer sits above table, facing down.
+        _approach_y = _tbl.y - _th - 40;
+    }
+    else
+    {
+        // Bottom-side seat: customer sits below table, facing up.
+        _approach_y = _tbl.y + 52;
+    }
+
+    // Route:
+    // 1. move to side/aisle line
+    // 2. move across to seat approach
+    // 3. step into seat
+    __customer_add_path_point(_side_x, _approach_y);
+    __customer_add_path_point(_approach_x, _approach_y);
+    __customer_add_path_point(_seat_x, _seat_y);
+}
+
+// ----------------------------------------------------
+// Build route back to spawn point
+// ----------------------------------------------------
+function __customer_build_exit_path()
+{
+    __customer_clear_path();
+
+    // Step away from table first if leaving from a seat.
+    if (target_table != noone && instance_exists(target_table) && target_seat >= 0)
+    {
+        var _tbl = target_table;
+        var _s = target_seat;
+
+        if (_s >= 0 && _s < _tbl.seat_count)
+        {
+            var _seat_x = _tbl.x + _tbl.seat_xoff[_s];
+            var _facing = __customer_get_seat_facing(_tbl, _s);
+            var _th = sprite_get_height(_tbl.sprite_index);
+
+            if (_facing == "down")
+            {
+                __customer_add_path_point(_seat_x, _tbl.y - _th - 40);
+            }
+            else
+            {
+                __customer_add_path_point(_seat_x, _tbl.y + 52);
+            }
+        }
+    }
+
+    // Then go back to spawn.
+    __customer_add_path_point(spawn_x, spawn_y);
+}
+
+// ----------------------------------------------------
+// Follow current waypoint route
+// ----------------------------------------------------
+function __customer_follow_path(_spd)
+{
+    if (array_length(route_points) <= 0)
+    {
+        return true;
+    }
+
+    if (route_index >= array_length(route_points))
+    {
+        return true;
+    }
+
+    var _pt = route_points[route_index];
+
+    var _arrived = __customer_move_to(_pt.x, _pt.y, _spd);
+
+    if (_arrived)
+    {
+        route_index += 1;
+
+        if (route_index >= array_length(route_points))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ----------------------------------------------------
+// Stuck detection for route-following states
+// ----------------------------------------------------
+function __customer_check_stuck()
+{
+    var _moved = point_distance(x, y, last_x, last_y);
+
+    if (_moved < 0.05)
+    {
+        stuck_timer += 1;
+    }
+    else
+    {
+        stuck_timer = 0;
+    }
+
+    last_x = x;
+    last_y = y;
+
+    if (stuck_timer > room_speed)
+    {
+        stuck_timer = 0;
+
+        // Flip route side and rebuild route next step.
+        route_side_flip = !route_side_flip;
+        __customer_clear_path();
+
+        if (global.debug_mode)
+        {
+            show_debug_message("[Customer] Route retry / flipped side.");
+        }
+    }
 }
 
 // ----------------------------------------------------
@@ -108,6 +330,7 @@ if (state == "walking_to_queue")
     if (_arrived_queue)
     {
         state = "queued";
+        stuck_timer = 0;
     }
 
     exit;
@@ -143,6 +366,7 @@ if (state == "queued")
 
         global.customers_left_angry += 1;
 
+        __customer_clear_path();
         state = "leaving";
     }
 
@@ -154,11 +378,26 @@ if (state == "queued")
 // ----------------------------------------------------
 if (state == "walking_to_table")
 {
-    var _arrived_table = __customer_move_to(sit_x, sit_y, move_spd);
+    // Build table-aware route once.
+    if (array_length(route_points) <= 0)
+    {
+        __customer_build_table_path();
+    }
+
+    var _arrived_table = __customer_follow_path(move_spd);
+
+    __customer_check_stuck();
 
     if (_arrived_table)
     {
+        x = sit_x;
+        y = sit_y;
+
         state = "seated";
+
+        stuck_timer = 0;
+        route_side_flip = false;
+        __customer_clear_path();
     }
 
     exit;
@@ -193,6 +432,7 @@ if (state == "seated")
 
         global.customers_left_angry += 1;
 
+        __customer_clear_path();
         state = "leaving";
     }
 
@@ -290,6 +530,7 @@ if (state == "eating")
             }
         }
 
+        __customer_clear_path();
         state = "leaving";
     }
 
@@ -301,7 +542,15 @@ if (state == "eating")
 // ----------------------------------------------------
 if (state == "leaving")
 {
-    var _arrived_exit = __customer_move_to(spawn_x, spawn_y, move_spd);
+    // Build exit route once.
+    if (array_length(route_points) <= 0)
+    {
+        __customer_build_exit_path();
+    }
+
+    var _arrived_exit = __customer_follow_path(move_spd);
+
+    __customer_check_stuck();
 
     if (_arrived_exit)
     {

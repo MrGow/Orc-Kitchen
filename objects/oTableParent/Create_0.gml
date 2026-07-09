@@ -1,24 +1,23 @@
 /// oTableParent — Create Event
 
-station_name = "Table";
+// ----------------------------------------------------
+// Table base setup
+// Parent for oTableSmall, oTableMedium, oTableLarge
+// ----------------------------------------------------
 
-interactor = noone;
-
-// Future shop/buy support.
-// Bought/active tables should be available=true.
-// Locked future tables can be placed in the room with available=false.
+// Future purchase/unlock support.
+// If a child or room instance already set this, keep it.
 if (!variable_instance_exists(id, "available"))
 {
     available = true;
 }
 
 // ----------------------------------------------------
-// Table type / seats
+// Decide table type / seat count from child object
 // ----------------------------------------------------
 table_type = "medium";
 seat_count = 4;
 
-// Detect child type
 if (object_index == oTableSmall)
 {
     table_type = "small";
@@ -47,6 +46,12 @@ seat_yoff = array_create(seat_count, 0);
 plate_xoff = array_create(seat_count, 0);
 plate_yoff = array_create(seat_count, 0);
 
+// IMPORTANT:
+// Used by customer routing.
+// Top-side seats face "down".
+// Bottom-side seats face "up".
+seat_facing = array_create(seat_count, "up");
+
 seat_has_food = array_create(seat_count, false);
 seat_food_sprite = array_create(seat_count, -1);
 seat_food_kind = array_create(seat_count, "");
@@ -56,87 +61,95 @@ seat_food_data = array_create(seat_count, undefined);
 seat_has_dirty_plate = array_create(seat_count, false);
 
 // ----------------------------------------------------
-// Seat positions
-// Assumes table sprite origin = middle bottom.
-// Top seats sit behind table.
-// Bottom seats sit in front of table.
+// Table dimensions
+// Assumes table sprite origin is Middle Bottom.
 // ----------------------------------------------------
-if (table_type == "small")
-{
-    // 2 seats: one top, one bottom
-    seat_xoff[0] = 0;
-    seat_yoff[0] = -112;
-    plate_xoff[0] = 0;
-    plate_yoff[0] = -70;
+var _w = sprite_get_width(sprite_index);
+var _h = sprite_get_height(sprite_index);
 
-    seat_xoff[1] = 0;
-    seat_yoff[1] = 24;
-    plate_xoff[1] = 0;
-    plate_yoff[1] = -26;
-}
-else if (table_type == "medium")
-{
-    // 4 seats: two top, two bottom
-    seat_xoff[0] = -48;
-    seat_yoff[0] = -112;
-    plate_xoff[0] = -48;
-    plate_yoff[0] = -70;
+// Visual/service positions.
+// These are offsets from the table origin.
+var _seat_y_top = -_h - 18;
+var _seat_y_bot = 22;
 
-    seat_xoff[1] = 48;
-    seat_yoff[1] = -112;
-    plate_xoff[1] = 48;
-    plate_yoff[1] = -70;
-
-    seat_xoff[2] = -48;
-    seat_yoff[2] = 24;
-    plate_xoff[2] = -48;
-    plate_yoff[2] = -26;
-
-    seat_xoff[3] = 48;
-    seat_yoff[3] = 24;
-    plate_xoff[3] = 48;
-    plate_yoff[3] = -26;
-}
-else if (table_type == "large")
-{
-    // 6 seats: three top, three bottom
-    seat_xoff[0] = -80;
-    seat_yoff[0] = -112;
-    plate_xoff[0] = -80;
-    plate_yoff[0] = -70;
-
-    seat_xoff[1] = 0;
-    seat_yoff[1] = -112;
-    plate_xoff[1] = 0;
-    plate_yoff[1] = -70;
-
-    seat_xoff[2] = 80;
-    seat_yoff[2] = -112;
-    plate_xoff[2] = 80;
-    plate_yoff[2] = -70;
-
-    seat_xoff[3] = -80;
-    seat_yoff[3] = 24;
-    plate_xoff[3] = -80;
-    plate_yoff[3] = -26;
-
-    seat_xoff[4] = 0;
-    seat_yoff[4] = 24;
-    plate_xoff[4] = 0;
-    plate_yoff[4] = -26;
-
-    seat_xoff[5] = 80;
-    seat_yoff[5] = 24;
-    plate_xoff[5] = 80;
-    plate_yoff[5] = -26;
-}
+var _plate_y_top = -_h + 34;
+var _plate_y_bot = -28;
 
 // ----------------------------------------------------
-// Payment values
+// Build seats dynamically
+// ----------------------------------------------------
+// Small: 1 top, 1 bottom
+// Medium: 2 top, 2 bottom
+// Large: 3 top, 3 bottom
+// ----------------------------------------------------
+var _per_side = seat_count div 2;
+
+// Horizontal spacing.
+var _usable_w = _w - 48;
+var _spacing = 0;
+
+if (_per_side > 1)
+{
+    _spacing = _usable_w / (_per_side - 1);
+}
+
+for (var i = 0; i < _per_side; i++)
+{
+    var _xoff;
+
+    if (_per_side == 1)
+    {
+        _xoff = 0;
+    }
+    else
+    {
+        _xoff = -_usable_w * 0.5 + (_spacing * i);
+    }
+
+    // ------------------------------
+    // Top-side seats
+    // Customer sits above table,
+    // facing down toward the table.
+    // ------------------------------
+    var _top_s = i;
+
+    seat_xoff[_top_s] = _xoff;
+    seat_yoff[_top_s] = _seat_y_top;
+
+    plate_xoff[_top_s] = _xoff;
+    plate_yoff[_top_s] = _plate_y_top;
+
+    seat_facing[_top_s] = "down";
+
+    // ------------------------------
+    // Bottom-side seats
+    // Customer sits below table,
+    // facing up toward the table.
+    // ------------------------------
+    var _bot_s = i + _per_side;
+
+    seat_xoff[_bot_s] = _xoff;
+    seat_yoff[_bot_s] = _seat_y_bot;
+
+    plate_xoff[_bot_s] = _xoff;
+    plate_yoff[_bot_s] = _plate_y_bot;
+
+    seat_facing[_bot_s] = "up";
+}
+
+// ----------------------------------------------------
+// Economy / payment values
 // ----------------------------------------------------
 pay_correct = 8;
 pay_wrong = 2;
 pay_burnt = 3;
+
+// ----------------------------------------------------
+// Interaction / debug
+// ----------------------------------------------------
+interactor = noone;
+
+show_debug_seats = true;
 
 // Depth sorting
 depth = -y;

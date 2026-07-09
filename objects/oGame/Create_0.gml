@@ -93,7 +93,7 @@ global.customers_failed = 0;
 global.customers_left_angry = 0;
 
 global.active_customers = 0;
-global.max_customers = 8;
+global.max_customers = 30;
 
 global.orders_created = 0;
 global.orders_completed = 0;
