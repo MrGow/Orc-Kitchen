@@ -90,6 +90,7 @@
     {"id":{"name":"spriteTableSmall","path":"sprites/spriteTableSmall/spriteTableSmall.yy",},},
     {"id":{"name":"spriteTempRoom","path":"sprites/spriteTempRoom/spriteTempRoom.yy",},},
     {"id":{"name":"spriteTent","path":"sprites/spriteTent/spriteTent.yy",},},
+    {"id":{"name":"spriteTentLower","path":"sprites/spriteTentLower/spriteTentLower.yy",},},
     {"id":{"name":"tilesetTempRoom","path":"tilesets/tilesetTempRoom/tilesetTempRoom.yy",},},
   ],
   "resourceType":"GMProject",
