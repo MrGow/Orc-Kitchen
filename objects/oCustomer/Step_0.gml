@@ -227,7 +227,7 @@ function __customer_build_exit_path()
 {
     __customer_clear_path();
 
-    // Step away from table first if leaving from a seat.
+    // If leaving from a table, get properly clear of it first.
     if (target_table != noone && instance_exists(target_table) && target_seat >= 0)
     {
         var _tbl = target_table;
@@ -236,17 +236,51 @@ function __customer_build_exit_path()
         if (_s >= 0 && _s < _tbl.seat_count)
         {
             var _seat_x = _tbl.x + _tbl.seat_xoff[_s];
+            var _seat_y = _tbl.y + _tbl.seat_yoff[_s];
+
             var _facing = __customer_get_seat_facing(_tbl, _s);
+
+            var _tw = sprite_get_width(_tbl.sprite_index);
             var _th = sprite_get_height(_tbl.sprite_index);
+
+            // ------------------------------------------------
+            // First point: step away from the table on the
+            // correct side.
+            // ------------------------------------------------
+            var _away_x = _seat_x;
+            var _away_y = _seat_y;
 
             if (_facing == "down")
             {
-                __customer_add_path_point(_seat_x, _tbl.y - _th - 40);
+                // Top-side seat.
+                // Move further above table first.
+                _away_y = _tbl.y - _th - 48;
             }
             else
             {
-                __customer_add_path_point(_seat_x, _tbl.y + 52);
+                // Bottom-side seat.
+                // Move below table first.
+                _away_y = _tbl.y + 60;
             }
+
+            // ------------------------------------------------
+            // Second point: move sideways into an aisle.
+            // This is the important new part.
+            // ------------------------------------------------
+            var _side_x;
+
+            // Pick the side closer to the spawn point.
+            if (spawn_x < _tbl.x)
+            {
+                _side_x = _tbl.x - _tw * 0.5 - 48;
+            }
+            else
+            {
+                _side_x = _tbl.x + _tw * 0.5 + 48;
+            }
+
+            __customer_add_path_point(_away_x, _away_y);
+            __customer_add_path_point(_side_x, _away_y);
         }
     }
 
