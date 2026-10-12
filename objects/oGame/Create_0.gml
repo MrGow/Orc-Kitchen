@@ -4,6 +4,8 @@
 
 persistent = true;
 
+gpu_set_texfilter(false);
+
 // Prevent duplicate oGame instances after room changes.
 if (instance_number(oGame) > 1)
 {
