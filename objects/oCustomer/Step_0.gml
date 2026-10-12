@@ -222,12 +222,27 @@ function __customer_build_table_path()
 
 // ----------------------------------------------------
 // Build route back to spawn point
+// Uses orthogonal movement to avoid diagonal table scraping.
 // ----------------------------------------------------
 function __customer_build_exit_path()
 {
     __customer_clear_path();
 
-    // If leaving from a table, get properly clear of it first.
+    // ------------------------------------------------
+    // Tunable exit routing values
+    // ------------------------------------------------
+    var _clearance = 64;
+
+    // Pick a broad horizontal lane near the bottom exit.
+    // Adjust this number if needed.
+    var _exit_lane_y = room_height - 120;
+
+    var _exit_x = spawn_x;
+    var _exit_y = spawn_y;
+
+    // ------------------------------------------------
+    // If leaving from a table, get clear of that table first.
+    // ------------------------------------------------
     if (target_table != noone && instance_exists(target_table) && target_seat >= 0)
     {
         var _tbl = target_table;
@@ -243,10 +258,10 @@ function __customer_build_exit_path()
             var _tw = sprite_get_width(_tbl.sprite_index);
             var _th = sprite_get_height(_tbl.sprite_index);
 
-            // ------------------------------------------------
-            // First point: step away from the table on the
-            // correct side.
-            // ------------------------------------------------
+            // ----------------------------------------
+            // 1. Step away from the table on the side
+            //    the customer is sitting on.
+            // ----------------------------------------
             var _away_x = _seat_x;
             var _away_y = _seat_y;
 
@@ -254,38 +269,144 @@ function __customer_build_exit_path()
             {
                 // Top-side seat.
                 // Move further above table first.
-                _away_y = _tbl.y - _th - 48;
+                _away_y = _tbl.y - _th - _clearance;
             }
             else
             {
                 // Bottom-side seat.
                 // Move below table first.
-                _away_y = _tbl.y + 60;
+                _away_y = _tbl.y + _clearance;
             }
 
-            // ------------------------------------------------
-            // Second point: move sideways into an aisle.
-            // This is the important new part.
-            // ------------------------------------------------
+            // ----------------------------------------
+            // 2. Move horizontally clear of the table.
+            //    Pick the side closer to the exit/spawn.
+            // ----------------------------------------
             var _side_x;
 
-            // Pick the side closer to the spawn point.
-            if (spawn_x < _tbl.x)
+            if (_exit_x < _tbl.x)
             {
-                _side_x = _tbl.x - _tw * 0.5 - 48;
+                _side_x = _tbl.x - _tw * 0.5 - _clearance;
             }
             else
             {
-                _side_x = _tbl.x + _tw * 0.5 + 48;
+                _side_x = _tbl.x + _tw * 0.5 + _clearance;
             }
 
+            // ----------------------------------------
+            // 3. Use Manhattan/orthogonal exit movement.
+            //    No diagonal from table to exit.
+            // ----------------------------------------
             __customer_add_path_point(_away_x, _away_y);
             __customer_add_path_point(_side_x, _away_y);
+            __customer_add_path_point(_side_x, _exit_lane_y);
+            __customer_add_path_point(_exit_x, _exit_lane_y);
         }
     }
 
-    // Then go back to spawn.
-    __customer_add_path_point(spawn_x, spawn_y);
+    // Final step into the actual spawn/exit point.
+    __customer_add_path_point(_exit_x, _exit_y);
+}
+
+// ----------------------------------------------------
+// Build route to queue slot
+// Queue movement uses one shared line route:
+//
+// spawn
+// -> slightly up through doorway
+// -> left/right to queue column
+// -> straight up the queue line
+// -> stop at assigned queue slot
+// ----------------------------------------------------
+function __customer_build_queue_path()
+{
+    __customer_clear_path();
+
+    // ------------------------------------------------
+    // Target queue slot
+    // ------------------------------------------------
+    var _qx = queue_x;
+    var _qy = queue_y;
+
+    // ------------------------------------------------
+    // Shared queue column
+    // Everyone should move to the SAME x column.
+    // ------------------------------------------------
+    var _queue_column_x = _qx;
+
+    if (target_queue != noone && instance_exists(target_queue))
+    {
+        _queue_column_x = target_queue.x;
+    }
+
+    // ------------------------------------------------
+    // Door entry lane.
+    // This should be only slightly above the spawn/door.
+    // ------------------------------------------------
+    var _door_entry_y = y - 56;
+
+    _door_entry_y = clamp(
+        _door_entry_y,
+        96,
+        room_height - 80
+    );
+
+    // ------------------------------------------------
+    // Route:
+    // 1. Move slightly up through doorway.
+    // 2. Move horizontally to the queue column.
+    // 3. Move vertically up the queue line.
+    // 4. Final tiny correction to exact slot if needed.
+    // ------------------------------------------------
+    __customer_add_path_point(x, _door_entry_y);
+    __customer_add_path_point(_queue_column_x, _door_entry_y);
+    __customer_add_path_point(_queue_column_x, _qy);
+    __customer_add_path_point(_qx, _qy);
+}
+
+// ----------------------------------------------------
+// Build route out of queue before heading to a table
+// Uses the same line discipline as entering the queue.
+// ----------------------------------------------------
+function __customer_build_leave_queue_path()
+{
+    __customer_clear_path();
+
+    // ------------------------------------------------
+    // Queue column.
+    // Keep target_queue alive until this path finishes.
+    // ------------------------------------------------
+    var _queue_column_x = x;
+
+    if (target_queue != noone && instance_exists(target_queue))
+    {
+        _queue_column_x = target_queue.x;
+    }
+
+    // ------------------------------------------------
+    // Door/entry lane.
+    // This should match the queue entry path:
+    // just inside the bottom entrance, not deep in the room.
+    // ------------------------------------------------
+    var _door_entry_y = spawn_y - 56;
+
+    _door_entry_y = clamp(
+        _door_entry_y,
+        96,
+        room_height - 80
+    );
+
+    // ------------------------------------------------
+    // Route:
+    // 1. Move to the queue column if needed.
+    // 2. Move straight down the queue column.
+    // 3. Move horizontally back to the safe central/door lane.
+    //
+    // After this, the normal walking_to_table route takes over.
+    // ------------------------------------------------
+    __customer_add_path_point(_queue_column_x, y);
+    __customer_add_path_point(_queue_column_x, _door_entry_y);
+    __customer_add_path_point(spawn_x, _door_entry_y);
 }
 
 // ----------------------------------------------------
@@ -359,12 +480,26 @@ function __customer_check_stuck()
 // ----------------------------------------------------
 if (state == "walking_to_queue")
 {
-    var _arrived_queue = __customer_move_to(queue_x, queue_y, move_spd);
+    // Build queue route once.
+    if (array_length(route_points) <= 0)
+    {
+        __customer_build_queue_path();
+    }
+
+    var _arrived_queue = __customer_follow_path(move_spd);
+
+    __customer_check_stuck();
 
     if (_arrived_queue)
     {
+        x = queue_x;
+        y = queue_y;
+
         state = "queued";
+
         stuck_timer = 0;
+        route_side_flip = false;
+        __customer_clear_path();
     }
 
     exit;
@@ -402,6 +537,37 @@ if (state == "queued")
 
         __customer_clear_path();
         state = "leaving";
+    }
+
+    exit;
+}
+
+// ----------------------------------------------------
+// Walking out of queue before heading to table
+// ----------------------------------------------------
+if (state == "walking_from_queue")
+{
+    if (array_length(route_points) <= 0)
+    {
+        __customer_build_leave_queue_path();
+    }
+
+    var _left_queue = __customer_follow_path(move_spd);
+
+    __customer_check_stuck();
+
+    if (_left_queue)
+    {
+        stuck_timer = 0;
+        route_side_flip = false;
+        __customer_clear_path();
+
+        // Now we are safely out of the queue line.
+        target_queue = noone;
+        queue_index = -1;
+
+        // Now use the normal table-aware route.
+        state = "walking_to_table";
     }
 
     exit;

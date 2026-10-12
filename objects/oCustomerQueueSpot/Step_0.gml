@@ -35,6 +35,12 @@ for (var a = 0; a < slot_count - 1; a++)
                     queue_customer[a].queue_x = x + slot_xoff[a];
                     queue_customer[a].queue_y = y + slot_yoff[a];
 
+                    queue_customer[a].route_points = [];
+                    queue_customer[a].route_index = 0;
+                    queue_customer[a].stuck_timer = 0;
+                    queue_customer[a].last_x = queue_customer[a].x;
+                    queue_customer[a].last_y = queue_customer[a].y;
+
                     if (queue_customer[a].state == "queued")
                     {
                         queue_customer[a].state = "walking_to_queue";
@@ -71,6 +77,7 @@ if (_front != noone && instance_exists(_front))
                 // Future purchase support.
                 // If table has available=false, queue ignores it.
                 var _available = true;
+
                 if (variable_instance_exists(_tbl, "available"))
                 {
                     _available = _tbl.available;
@@ -100,9 +107,14 @@ if (_front != noone && instance_exists(_front))
 
         if (_found_table != noone && _found_seat != -1)
         {
-            // Remove front customer from queue and shift everyone forward.
+            // ------------------------------------------------
+            // Remove front customer from queue
+            // ------------------------------------------------
             queue_customer[0] = noone;
 
+            // ------------------------------------------------
+            // Shift everyone forward
+            // ------------------------------------------------
             for (var q = 0; q < slot_count - 1; q++)
             {
                 queue_customer[q] = queue_customer[q + 1];
@@ -113,6 +125,12 @@ if (_front != noone && instance_exists(_front))
                     queue_customer[q].queue_x = x + slot_xoff[q];
                     queue_customer[q].queue_y = y + slot_yoff[q];
 
+                    queue_customer[q].route_points = [];
+                    queue_customer[q].route_index = 0;
+                    queue_customer[q].stuck_timer = 0;
+                    queue_customer[q].last_x = queue_customer[q].x;
+                    queue_customer[q].last_y = queue_customer[q].y;
+
                     if (queue_customer[q].state == "queued")
                     {
                         queue_customer[q].state = "walking_to_queue";
@@ -122,7 +140,9 @@ if (_front != noone && instance_exists(_front))
 
             queue_customer[slot_count - 1] = noone;
 
-            // Send front customer to table.
+            // ------------------------------------------------
+            // Reserve table seat for the front customer
+            // ------------------------------------------------
             _found_table.seat_reserved[_found_seat] = true;
             _found_table.seat_customer[_found_seat] = _front;
 
@@ -132,10 +152,23 @@ if (_front != noone && instance_exists(_front))
             _front.sit_x = _found_table.x + _found_table.seat_xoff[_found_seat];
             _front.sit_y = _found_table.y + _found_table.seat_yoff[_found_seat];
 
-            _front.target_queue = noone;
+            // Keep target_queue temporarily so the customer knows
+            // which queue column to walk out from.
+            _front.target_queue = id;
             _front.queue_index = -1;
 
-            _front.state = "walking_to_table";
+            // Clear route so it builds the leave-queue path.
+            _front.route_points = [];
+            _front.route_index = 0;
+            _front.route_side_flip = false;
+            _front.stuck_timer = 0;
+            _front.last_x = _front.x;
+            _front.last_y = _front.y;
+
+            // Important:
+            // Do NOT go directly to walking_to_table.
+            // First walk out of the queue in straight lines.
+            _front.state = "walking_from_queue";
         }
     }
 }
