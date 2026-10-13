@@ -4,6 +4,8 @@
 
 game_set_speed(60, gamespeed_fps);
 
+gpu_set_texfilter(false);
+
 display_set_gui_size(global.GUI_W, global.GUI_H);
 
 // ----------------------------------------------------
@@ -35,7 +37,6 @@ if (global.layer_ui == -1)
 // ----------------------------------------------------
 // Tilemap references
 // ----------------------------------------------------
-// Optional, but useful once we add player collision.
 global.tm_floor = undefined;
 global.tm_walls = undefined;
 
@@ -52,24 +53,56 @@ if (global.layer_walls != -1)
 }
 
 // ----------------------------------------------------
-// Room type guess
+// Room type detection
 // ----------------------------------------------------
-// Later we can set this manually per room.
-// For now, default to kitchen.
 global.current_room = room;
 global.current_room_name = room_get_name(room);
 
-if (string_pos("Kitchen", global.current_room_name) > 0)
+// Exact room names currently used:
+// MessHall, WarCampMap, Market, Home
+if (global.current_room_name == "MessHall")
 {
     global.game_state = "kitchen";
+
+    if (global.day_phase == "cleanup")
+    {
+        global.shift_state = "cleanup";
+        global.can_leave_mess_hall = true;
+    }
+
+    if (global.day_phase == "pre_shift")
+    {
+        global.shift_state = "pre_shift";
+        global.can_leave_mess_hall = false;
+
+        if (global.pre_shift_timer <= 0)
+        {
+            global.pre_shift_timer = global.pre_shift_time_limit;
+        }
+
+        if (global.shift_timer <= 0)
+        {
+            global.shift_timer = global.shift_time_limit;
+        }
+    }
 }
-else if (string_pos("Home", global.current_room_name) > 0)
+else if (global.current_room_name == "WarCampMap")
+{
+    global.game_state = "camp_map";
+    global.day_phase = "camp_map";
+    global.can_leave_mess_hall = false;
+}
+else if (global.current_room_name == "Market")
+{
+    global.game_state = "market";
+    global.day_phase = "market";
+    global.can_leave_mess_hall = false;
+}
+else if (global.current_room_name == "Home")
 {
     global.game_state = "home";
-}
-else if (string_pos("Shop", global.current_room_name) > 0)
-{
-    global.game_state = "shop";
+    global.day_phase = "home";
+    global.can_leave_mess_hall = false;
 }
 
 // ----------------------------------------------------

@@ -23,7 +23,7 @@ for (var i = 0; i < seat_count; i++)
 // ----------------------------------------------------
 // Debug seat markers
 // ----------------------------------------------------
-if (global.debug_mode)
+if (global.ok_debug)
 {
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);

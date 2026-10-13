@@ -55,7 +55,7 @@ if (reaction_timer > 0)
 // ----------------------------------------------------
 // Debug route drawing
 // ----------------------------------------------------
-if (global.debug_mode)
+if (global.ok_debug)
 {
     if (array_length(route_points) > 0)
     {

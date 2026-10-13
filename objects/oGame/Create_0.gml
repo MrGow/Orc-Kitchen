@@ -14,6 +14,11 @@ if (instance_number(oGame) > 1)
 }
 
 // ----------------------------------------------------
+// Pixel art / texture filtering
+// ----------------------------------------------------
+gpu_set_texfilter(false);
+
+// ----------------------------------------------------
 // Base resolution / presentation
 // ----------------------------------------------------
 global.GAME_W = 640;
@@ -53,19 +58,55 @@ window_center();
 global.frame = 0;
 
 global.paused = false;
-global.debug_mode = true;
+
+// Custom debug flag.
+// Do NOT use global.debug_mode because debug_mode is read-only in GameMaker.
+global.ok_debug = true;
 
 // Main high-level state.
-// "boot", "kitchen", "shift_end", "home", "shop", "sleep"
+// "kitchen", "camp_map", "market", "home"
 global.game_state = "kitchen";
 
+// Day phase.
+// "pre_shift"
+// "serving"
+// "closing"
+// "shift_summary"
+// "cleanup"
+// "camp_map"
+// "market"
+// "home"
+global.day_phase = "pre_shift";
+
 // Shift state.
-// "prep", "serving", "cleanup", "ended"
-global.shift_state = "prep";
+// Kept separate because existing kitchen objects already check this.
+// "pre_shift", "serving", "closing", "shift_summary", "cleanup", "ended"
+global.shift_state = "pre_shift";
 
 global.day = 1;
-global.shift_timer = 0;
-global.shift_time_limit = room_speed * 180; // 3 minutes at 60 FPS for testing
+
+// ----------------------------------------------------
+// Day / shift loop timers
+// ----------------------------------------------------
+// Short test values. Increase later.
+global.pre_shift_time_limit = room_speed * 5;
+global.pre_shift_timer = global.pre_shift_time_limit;
+
+// Active cooking shift timer.
+// This now counts DOWN.
+global.shift_time_limit = room_speed * 30;
+global.shift_timer = global.shift_time_limit;
+
+// Summary screen.
+global.summary_timer = 0;
+global.summary_min_time = room_speed * 2;
+
+// Banner / announcement.
+global.shift_banner_text = "";
+global.shift_banner_timer = 0;
+
+// This controls whether oMessHallExit is allowed.
+global.can_leave_mess_hall = false;
 
 // ----------------------------------------------------
 // Economy
@@ -102,15 +143,13 @@ global.orders_completed = 0;
 global.orders_failed = 0;
 
 // Customer queue.
-// If no seats are available, customers wait in line.
-// If they wait too long, satisfaction/patience will drain.
 global.customer_queue_length = 0;
 global.customer_queue_max = 6;
 
 // ----------------------------------------------------
 // Satisfaction / patience defaults
 // ----------------------------------------------------
-global.customer_patience_max = room_speed * 45; // 45 seconds
+global.customer_patience_max = room_speed * 45;
 global.customer_queue_patience_max = room_speed * 30;
 
 global.satisfaction_perfect = 100;
@@ -122,7 +161,6 @@ global.satisfaction_angry = 0;
 // ----------------------------------------------------
 // Plate / container system
 // ----------------------------------------------------
-// Clean container stock.
 global.containers_clean = {
     normal_plate : 6,
     big_plate    : 0,
@@ -132,7 +170,6 @@ global.containers_clean = {
     mug          : 4
 };
 
-// Dirty containers waiting to be washed.
 global.containers_dirty = {
     normal_plate : 0,
     big_plate    : 0,
@@ -142,8 +179,6 @@ global.containers_dirty = {
     mug          : 0
 };
 
-// Max container capacity.
-// Upgrades will increase these later.
 global.containers_capacity = {
     normal_plate : 6,
     big_plate    : 0,
@@ -153,7 +188,6 @@ global.containers_capacity = {
     mug          : 4
 };
 
-// Wash times in steps.
 global.wash_time = {
     normal_plate : room_speed * 2,
     soup_bowl    : room_speed * 3,
@@ -190,7 +224,6 @@ global.recipes_unlocked = {
     bat_burger   : false
 };
 
-// Basic recipe values.
 global.recipe_value = {
     skewered_rat : 8,
     bat_wings    : 10,
@@ -229,8 +262,6 @@ global.station_level = {
     gobble_toad     : 1
 };
 
-// Station slot counts.
-// Upgrades will increase these later.
 global.station_slots = {
     prep_counter : 1,
     grill        : 2,
@@ -271,8 +302,6 @@ global.prep_states = [
 // ----------------------------------------------------
 // Mess / filth system
 // ----------------------------------------------------
-// Orc Kitchen should not aim for spotless.
-// Some filth is good. Too much filth is bad.
 global.filth = 25;
 global.filth_min_ideal = 20;
 global.filth_max_ideal = 60;
@@ -313,8 +342,6 @@ global.player_can_interact = true;
 
 global.show_station_labels = false;
 
-// Current held item is better stored on oPlayer,
-// but this global is useful for debugging early on.
 global.debug_player_holding = "nothing";
 
 // ----------------------------------------------------
@@ -322,9 +349,6 @@ global.debug_player_holding = "nothing";
 // ----------------------------------------------------
 global.recipe_menu_open = false;
 global.recipe_menu_index = 0;
-
-// Used so the recipe menu can pause the game without confusing
-// the normal pause button too much.
 global.recipe_menu_was_open = false;
 
 // ----------------------------------------------------
