@@ -1,11 +1,14 @@
 /// oCustomerSpawner — Step Event
+// Spawn customers only during active service.
 
+if (room != MessHall) exit;
 if (global.paused) exit;
+if (global.day_phase != "serving") exit;
+if (global.shift_state != "serving") exit;
 
 if (spawned_count >= max_spawned_for_test) exit;
 
-// For queue testing, this should be higher than table seats.
-// active_customers includes seated + queued customers.
+// Active customers includes seated and queued customers.
 if (global.active_customers >= global.max_customers) exit;
 
 spawn_timer -= 1;
@@ -26,7 +29,6 @@ if (object_exists(oTableParent))
         var _tbl = instance_find(oTableParent, t);
         if (_tbl == noone) continue;
 
-        // Future purchase support.
         var _available = true;
 
         if (variable_instance_exists(_tbl, "available"))
@@ -62,8 +64,6 @@ if (object_exists(oTableParent))
 var _found_queue = noone;
 var _found_queue_slot = -1;
 
-// Safer than object_exists(oCustomerQueueSpot), because it will not crash
-// if the object name is missing or not created yet.
 var _queue_obj = asset_get_index("oCustomerQueueSpot");
 
 if (_found_table == noone && _queue_obj != -1)
@@ -107,7 +107,6 @@ if (_found_table != noone && _found_seat != -1)
 
     _c.state = "walking_to_table";
 
-    // Clear route so customer builds fresh table-aware path.
     _c.route_points = [];
     _c.route_index = 0;
     _c.route_side_flip = false;
@@ -145,7 +144,6 @@ else if (_found_queue != noone && _found_queue_slot != -1)
     _cq.queue_x = _found_queue.x + _found_queue.slot_xoff[_found_queue_slot];
     _cq.queue_y = _found_queue.y + _found_queue.slot_yoff[_found_queue_slot];
 
-    // Queue movement is direct for now; queue should be in open space.
     _cq.route_points = [];
     _cq.route_index = 0;
     _cq.route_side_flip = false;

@@ -1,73 +1,116 @@
+
 /// oGame — Create
 // Persistent global controller for Orc Kitchen.
-// Put one oGame in the first room only.
+// Place ONE oGame in MainMenuRoom only.
+
+
+// ====================================================
+// PERSISTENCE / DUPLICATE PROTECTION
+// ====================================================
 
 persistent = true;
 
-gpu_set_texfilter(false);
-
-// Prevent duplicate oGame instances after room changes.
 if (instance_number(oGame) > 1)
 {
     instance_destroy();
     exit;
 }
 
-// ----------------------------------------------------
-// Pixel art / texture filtering
-// ----------------------------------------------------
+
+// ====================================================
+// PIXEL ART / TEXTURE FILTERING
+// ====================================================
+
 gpu_set_texfilter(false);
 
-// ----------------------------------------------------
-// Base resolution / presentation
-// ----------------------------------------------------
+
+// ====================================================
+// BASE RESOLUTION / PRESENTATION
+// ====================================================
+
 global.GAME_W = 640;
 global.GAME_H = 360;
 
-// Orc Kitchen is 64x64 base scale, so this is useful later.
+// Base tile scale.
 global.TILE_SIZE = 64;
 
-// GUI virtual size.
-// 640x360 matches the current game camera.
+// GUI virtual resolution.
 global.GUI_W = 640;
 global.GUI_H = 360;
 
-display_set_gui_size(global.GUI_W, global.GUI_H);
+display_set_gui_size(
+    global.GUI_W,
+    global.GUI_H
+);
 
-// Useful for UI/world conversion later.
+// Application surface presentation helpers.
 global._appsurf_scale = 1;
-global._appsurf_xoff  = 0;
-global._appsurf_yoff  = 0;
+global._appsurf_xoff = 0;
+global._appsurf_yoff = 0;
 
-// ----------------------------------------------------
-// Window / fullscreen
-// ----------------------------------------------------
+
+// ====================================================
+// WINDOW / FULLSCREEN
+// ====================================================
+
 global.windowed_w = 1280;
 global.windowed_h = 720;
 
 global.is_fullscreen = false;
 
-// Start windowed for development.
+// Start windowed during development.
 window_set_fullscreen(false);
-window_set_size(global.windowed_w, global.windowed_h);
+
+window_set_size(
+    global.windowed_w,
+    global.windowed_h
+);
+
 window_center();
 
-// ----------------------------------------------------
-// Runtime state
-// ----------------------------------------------------
+
+// ====================================================
+// GENERAL RUNTIME STATE
+// ====================================================
+
 global.frame = 0;
 
 global.paused = false;
 
 // Custom debug flag.
-// Do NOT use global.debug_mode because debug_mode is read-only in GameMaker.
+// Do not use global.debug_mode.
 global.ok_debug = true;
 
-// Main high-level state.
-// "kitchen", "camp_map", "market", "home"
-global.game_state = "kitchen";
 
-// Day phase.
+// ====================================================
+// MAIN MENU / CAMPAIGN STATE
+// ====================================================
+
+// oGame exists from startup, but gameplay has not
+// started yet.
+//
+// Main states:
+// "main_menu"
+// "kitchen"
+// "camp_map"
+// "market"
+// "home"
+
+global.game_state = "main_menu";
+
+// Campaign is initialized, but not yet running.
+// Room Start will activate it when New Game
+// sends the player to MessHall.
+global.campaign_started = false;
+
+
+// ====================================================
+// DAY / SHIFT STATE
+// ====================================================
+
+// Main menu is the initial phase.
+//
+// Gameplay phases:
 // "pre_shift"
 // "serving"
 // "closing"
@@ -76,24 +119,33 @@ global.game_state = "kitchen";
 // "camp_map"
 // "market"
 // "home"
-global.day_phase = "pre_shift";
 
-// Shift state.
-// Kept separate because existing kitchen objects already check this.
-// "pre_shift", "serving", "closing", "shift_summary", "cleanup", "ended"
-global.shift_state = "pre_shift";
+global.day_phase = "main_menu";
+
+// Shift states:
+// "pre_shift"
+// "serving"
+// "closing"
+// "shift_summary"
+// "cleanup"
+// "ended"
+
+global.shift_state = "ended";
 
 global.day = 1;
 
-// ----------------------------------------------------
-// Day / shift loop timers
-// ----------------------------------------------------
-// Short test values. Increase later.
+
+// ====================================================
+// DAY / SHIFT TIMERS
+// ====================================================
+
+// Short development values.
+// Increase later for the full game.
+
 global.pre_shift_time_limit = room_speed * 5;
 global.pre_shift_timer = global.pre_shift_time_limit;
 
 // Active cooking shift timer.
-// This now counts DOWN.
 global.shift_time_limit = room_speed * 30;
 global.shift_timer = global.shift_time_limit;
 
@@ -101,35 +153,45 @@ global.shift_timer = global.shift_time_limit;
 global.summary_timer = 0;
 global.summary_min_time = room_speed * 2;
 
-// Banner / announcement.
+// Announcement banner.
 global.shift_banner_text = "";
 global.shift_banner_timer = 0;
 
-// This controls whether oMessHallExit is allowed.
+// Mess Hall exit permission.
 global.can_leave_mess_hall = false;
 
-// ----------------------------------------------------
-// Economy
-// ----------------------------------------------------
+
+// ====================================================
+// ECONOMY
+// ====================================================
+
 global.gold = 0;
 
 global.shift_revenue = 0;
 global.shift_tips = 0;
+
 global.shift_ingredient_costs = 0;
 global.shift_repair_costs = 0;
 global.shift_wages = 0;
+
 global.shift_net_profit = 0;
 
-// ----------------------------------------------------
-// Waste stats
-// ----------------------------------------------------
-// Increased by oStationGobbleToad when food is discarded.
+
+// ====================================================
+// FOOD WASTE STATISTICS
+// ====================================================
+
+// Increased by oStationGobbleToad when food
+// is discarded.
+
 global.food_wasted = 0;
 global.waste_cost = 0;
 
-// ----------------------------------------------------
-// Customer / order tracking
-// ----------------------------------------------------
+
+// ====================================================
+// CUSTOMER / ORDER TRACKING
+// ====================================================
+
 global.customers_spawned = 0;
 global.customers_served = 0;
 global.customers_failed = 0;
@@ -146,9 +208,11 @@ global.orders_failed = 0;
 global.customer_queue_length = 0;
 global.customer_queue_max = 6;
 
-// ----------------------------------------------------
-// Satisfaction / patience defaults
-// ----------------------------------------------------
+
+// ====================================================
+// SATISFACTION / PATIENCE DEFAULTS
+// ====================================================
+
 global.customer_patience_max = room_speed * 45;
 global.customer_queue_patience_max = room_speed * 30;
 
@@ -158,10 +222,13 @@ global.satisfaction_ok = 50;
 global.satisfaction_bad = 25;
 global.satisfaction_angry = 0;
 
-// ----------------------------------------------------
-// Plate / container system
-// ----------------------------------------------------
-global.containers_clean = {
+
+// ====================================================
+// PLATE / CONTAINER SYSTEM
+// ====================================================
+
+global.containers_clean =
+{
     normal_plate : 6,
     big_plate    : 0,
     boss_plate   : 0,
@@ -170,7 +237,8 @@ global.containers_clean = {
     mug          : 4
 };
 
-global.containers_dirty = {
+global.containers_dirty =
+{
     normal_plate : 0,
     big_plate    : 0,
     boss_plate   : 0,
@@ -179,7 +247,8 @@ global.containers_dirty = {
     mug          : 0
 };
 
-global.containers_capacity = {
+global.containers_capacity =
+{
     normal_plate : 6,
     big_plate    : 0,
     boss_plate   : 0,
@@ -188,7 +257,8 @@ global.containers_capacity = {
     mug          : 4
 };
 
-global.wash_time = {
+global.wash_time =
+{
     normal_plate : room_speed * 2,
     soup_bowl    : room_speed * 3,
     big_plate    : room_speed * 4,
@@ -197,44 +267,55 @@ global.wash_time = {
     mug          : room_speed * 2
 };
 
-// ----------------------------------------------------
-// Ingredients / stock
-// ----------------------------------------------------
-global.ingredients_stock = {
+
+// ====================================================
+// INGREDIENTS / STOCK
+// ====================================================
+
+global.ingredients_stock =
+{
     skewered_rat : 12,
     bat_wings    : 8,
     bog_relish   : 10,
     bone_juice   : 10
 };
 
-global.ingredients_used_this_shift = {
+global.ingredients_used_this_shift =
+{
     skewered_rat : 0,
     bat_wings    : 0,
     bog_relish   : 0,
     bone_juice   : 0
 };
 
-// ----------------------------------------------------
-// Recipe unlocks
-// ----------------------------------------------------
-global.recipes_unlocked = {
+
+// ====================================================
+// RECIPE UNLOCKS
+// ====================================================
+
+global.recipes_unlocked =
+{
     skewered_rat : true,
     bat_wings    : true,
     swamp_stew   : false,
     bat_burger   : false
 };
 
-global.recipe_value = {
+global.recipe_value =
+{
     skewered_rat : 8,
     bat_wings    : 10,
     swamp_stew   : 12,
     bat_burger   : 15
 };
 
-// ----------------------------------------------------
-// Station unlocks / upgrades
-// ----------------------------------------------------
-global.station_unlocked = {
+
+// ====================================================
+// STATION UNLOCKS / UPGRADES
+// ====================================================
+
+global.station_unlocked =
+{
     plate_holder    : true,
     prep_counter    : true,
     meat_rack       : true,
@@ -248,7 +329,8 @@ global.station_unlocked = {
     gobble_toad     : true
 };
 
-global.station_level = {
+global.station_level =
+{
     plate_holder    : 1,
     prep_counter    : 1,
     meat_rack       : 1,
@@ -262,17 +344,21 @@ global.station_level = {
     gobble_toad     : 1
 };
 
-global.station_slots = {
+global.station_slots =
+{
     prep_counter : 1,
     grill        : 2,
     cauldron     : 0,
     wash_station : 1
 };
 
-// ----------------------------------------------------
-// Cook / prep state names
-// ----------------------------------------------------
-global.cook_states = [
+
+// ====================================================
+// COOK / PREP STATE NAMES
+// ====================================================
+
+global.cook_states =
+[
     "raw",
     "lightly_cooked",
     "medium_cooked",
@@ -281,7 +367,8 @@ global.cook_states = [
     "ash"
 ];
 
-global.cauldron_states = [
+global.cauldron_states =
+[
     "watery",
     "warm",
     "bubbling",
@@ -290,7 +377,8 @@ global.cauldron_states = [
     "ruined"
 ];
 
-global.prep_states = [
+global.prep_states =
+[
     "whole",
     "chunky",
     "chopped",
@@ -299,10 +387,13 @@ global.prep_states = [
     "ruined_mush"
 ];
 
-// ----------------------------------------------------
-// Mess / filth system
-// ----------------------------------------------------
+
+// ====================================================
+// MESS / FILTH SYSTEM
+// ====================================================
+
 global.filth = 25;
+
 global.filth_min_ideal = 20;
 global.filth_max_ideal = 60;
 global.filth_max = 100;
@@ -311,32 +402,39 @@ global.mess_count = 0;
 global.mess_created_this_shift = 0;
 global.mess_cleaned_this_shift = 0;
 
-// ----------------------------------------------------
-// Damage / repair system
-// ----------------------------------------------------
+
+// ====================================================
+// DAMAGE / REPAIR SYSTEM
+// ====================================================
+
 global.broken_station_count = 0;
 global.repairs_done_this_shift = 0;
 
-global.repair_time = {
-    table        : room_speed * 2,
-    plate_rack   : room_speed * 3,
-    grill        : room_speed * 4,
-    washer       : room_speed * 4,
-    boss_rack    : room_speed * 5
+global.repair_time =
+{
+    table      : room_speed * 2,
+    plate_rack : room_speed * 3,
+    grill      : room_speed * 4,
+    washer     : room_speed * 4,
+    boss_rack  : room_speed * 5
 };
 
-// ----------------------------------------------------
-// Boss / calendar starter
-// ----------------------------------------------------
+
+// ====================================================
+// BOSS / CALENDAR
+// ====================================================
+
 global.next_boss_day = 3;
 global.next_boss_name = "General Headsmash";
 
 global.boss_event_active = false;
 global.boss_event_complete = false;
 
-// ----------------------------------------------------
-// Player / interaction helpers
-// ----------------------------------------------------
+
+// ====================================================
+// PLAYER / INTERACTION HELPERS
+// ====================================================
+
 global.player_can_move = true;
 global.player_can_interact = true;
 
@@ -344,16 +442,44 @@ global.show_station_labels = false;
 
 global.debug_player_holding = "nothing";
 
-// ----------------------------------------------------
-// Recipe Menu / Cookbook
-// ----------------------------------------------------
+
+// ====================================================
+// RECIPE MENU / COOKBOOK
+// ====================================================
+
 global.recipe_menu_open = false;
 global.recipe_menu_index = 0;
 global.recipe_menu_was_open = false;
 
-// ----------------------------------------------------
-// Shift report starter
-// ----------------------------------------------------
+
+// ====================================================
+// SHIFT REPORT
+// ====================================================
+
 global.shift_report_ready = false;
 
-show_debug_message("[oGame] Orc Kitchen controller created.");
+
+// ====================================================
+// INITIAL ROOM INFORMATION
+// ====================================================
+
+global.current_room = room;
+global.current_room_name = room_get_name(room);
+
+
+// ====================================================
+// INITIALIZATION COMPLETE
+// ====================================================
+
+show_debug_message(
+    "[oGame] Controller created."
+);
+
+show_debug_message(
+    "[oGame] Initial state: "
+    + global.game_state
+);
+
+show_debug_message(
+    "[oGame] Waiting for New Game."
+);
