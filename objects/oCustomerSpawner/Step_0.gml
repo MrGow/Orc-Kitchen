@@ -1,22 +1,47 @@
 /// oCustomerSpawner — Step Event
-// Spawn customers only during active service.
+// One randomized, pre-planned schedule per day.
+// Does not spawn during countdown, Last Call, or cleanup.
 
 if (room != MessHall) exit;
 if (global.paused) exit;
 if (global.day_phase != "serving") exit;
 if (global.shift_state != "serving") exit;
 
-if (spawned_count >= max_spawned_for_test) exit;
+// Room instances are recreated when re-entering MessHall.
+// Restore count from oGame's shift statistics.
+if (spawned_count < global.customers_spawned)
+    spawned_count = global.customers_spawned;
 
-// Active customers includes seated and queued customers.
-if (global.active_customers >= global.max_customers) exit;
+var _planned_total = array_length(global.day_spawn_times);
+if (spawned_count >= _planned_total) exit;
+if (spawned_count >= global.day_target_customers) exit;
 
-spawn_timer -= 1;
-if (spawn_timer > 0) exit;
+if (retry_timer > 0)
+{
+    retry_timer -= 1;
+    exit;
+}
 
-// ----------------------------------------------------
-// Find first available table seat
-// ----------------------------------------------------
+if (spawn_cooldown > 0)
+{
+    spawn_cooldown -= 1;
+    exit;
+}
+
+// Wait until the next scheduled arrival time.
+if (global.shift_elapsed < global.day_spawn_times[spawned_count])
+    exit;
+
+// Active count includes table customers and queue customers.
+if (global.active_customers >= global.max_customers)
+{
+    retry_timer = retry_delay;
+    exit;
+}
+
+// ====================================================
+// FIRST FREE TABLE SEAT
+// ====================================================
 var _found_table = noone;
 var _found_seat = -1;
 
@@ -30,18 +55,14 @@ if (object_exists(oTableParent))
         if (_tbl == noone) continue;
 
         var _available = true;
-
         if (variable_instance_exists(_tbl, "available"))
-        {
             _available = _tbl.available;
-        }
 
         if (!_available) continue;
 
         for (var s = 0; s < _tbl.seat_count; s++)
         {
-            var _free =
-                _tbl.seat_customer[s] == noone
+            var _free = _tbl.seat_customer[s] == noone
                 && !_tbl.seat_reserved[s]
                 && !_tbl.seat_has_dirty_plate[s]
                 && !_tbl.seat_has_food[s];
@@ -58,12 +79,11 @@ if (object_exists(oTableParent))
     }
 }
 
-// ----------------------------------------------------
-// If no seat, find queue slot
-// ----------------------------------------------------
+// ====================================================
+// IF NO SEAT, FIRST FREE QUEUE SLOT
+// ====================================================
 var _found_queue = noone;
 var _found_queue_slot = -1;
-
 var _queue_obj = asset_get_index("oCustomerQueueSpot");
 
 if (_found_table == noone && _queue_obj != -1)
@@ -87,9 +107,11 @@ if (_found_table == noone && _queue_obj != -1)
     }
 }
 
-// ----------------------------------------------------
-// Spawn customer to table
-// ----------------------------------------------------
+// ====================================================
+// CREATE CUSTOMER TO TABLE
+// ====================================================
+var _did_spawn = false;
+
 if (_found_table != noone && _found_seat != -1)
 {
     _found_table.seat_reserved[_found_seat] = true;
@@ -98,13 +120,10 @@ if (_found_table != noone && _found_seat != -1)
 
     _c.spawn_x = x;
     _c.spawn_y = y;
-
     _c.target_table = _found_table;
     _c.target_seat = _found_seat;
-
     _c.sit_x = _found_table.x + _found_table.seat_xoff[_found_seat];
     _c.sit_y = _found_table.y + _found_table.seat_yoff[_found_seat];
-
     _c.state = "walking_to_table";
 
     _c.route_points = [];
@@ -115,30 +134,21 @@ if (_found_table != noone && _found_seat != -1)
     _c.last_y = _c.y;
 
     _found_table.seat_customer[_found_seat] = _c;
-
-    global.active_customers += 1;
-    global.customers_spawned += 1;
-
-    spawned_count += 1;
+    _did_spawn = true;
 
     if (debug_spawner)
-    {
-        show_debug_message("[CustomerSpawner] Spawned customer to table seat " + string(_found_seat));
-    }
+        show_debug_message("[CustomerSpawner] Table seat " + string(_found_seat));
 }
-
-// ----------------------------------------------------
-// Spawn customer to queue
-// ----------------------------------------------------
 else if (_found_queue != noone && _found_queue_slot != -1)
 {
+    // =================================================
+    // CREATE CUSTOMER TO QUEUE
+    // =================================================
     var _cq = instance_create_depth(x, y, -y, oCustomer);
 
     _cq.spawn_x = x;
     _cq.spawn_y = y;
-
     _cq.state = "walking_to_queue";
-
     _cq.target_queue = _found_queue;
     _cq.queue_index = _found_queue_slot;
     _cq.queue_x = _found_queue.x + _found_queue.slot_xoff[_found_queue_slot];
@@ -152,28 +162,37 @@ else if (_found_queue != noone && _found_queue_slot != -1)
     _cq.last_y = _cq.y;
 
     _found_queue.queue_customer[_found_queue_slot] = _cq;
+    global.customer_queue_length += 1;
+    _did_spawn = true;
 
+    if (debug_spawner)
+        show_debug_message("[CustomerSpawner] Queue slot " + string(_found_queue_slot));
+}
+
+// ====================================================
+// COUNT SUCCESS OR RETRY LATER
+// ====================================================
+if (_did_spawn)
+{
     global.active_customers += 1;
     global.customers_spawned += 1;
-    global.customer_queue_length += 1;
-
     spawned_count += 1;
+    spawn_cooldown = spawn_cooldown_length;
 
     if (debug_spawner)
-    {
-        show_debug_message("[CustomerSpawner] Spawned customer to queue slot " + string(_found_queue_slot));
-    }
+        show_debug_message("[CustomerSpawner] Arrival "
+            + string(spawned_count) + "/"
+            + string(global.day_target_customers)
+            + " (shift t="
+            + string_format(global.shift_elapsed / room_speed, 0, 1)
+            + "s)");
 }
-
-// ----------------------------------------------------
-// No available seat or queue
-// ----------------------------------------------------
 else
 {
-    if (debug_spawner)
-    {
-        show_debug_message("[CustomerSpawner] No free seat or queue slot.");
-    }
-}
+    // A blocked arrival remains pending. It is NOT lost,
+    // but Last Call still stops all pending arrivals.
+    retry_timer = retry_delay;
 
-spawn_timer = spawn_delay;
+    if (debug_spawner)
+        show_debug_message("[CustomerSpawner] All seats and queue full; retrying.");
+}

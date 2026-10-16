@@ -45,9 +45,13 @@ function __customer_move_to(_tx, _ty, _spd)
 
     if (_d <= 2)
     {
-        x = _tx;
-        y = _ty;
-        return true;
+        if (__customer_can_stand_at(_tx, _ty))
+        {
+            x = _tx;
+            y = _ty;
+            return true;
+        }
+        return false;
     }
 
     var _dir = point_direction(x, y, _tx, _ty);
@@ -442,6 +446,135 @@ function __customer_follow_path(_spd)
 }
 
 // ----------------------------------------------------
+// Obstacle-aware detour when a route becomes blocked
+// ----------------------------------------------------
+// Builds a short grid search around the customer's actual position.
+// Unlike flipping the target table's side, this can route around
+// OTHER tables/stations which are in the way.
+//
+// Grid uses the real customer collision mask via can_stand_at.
+// Routes are calculated only after getting stuck, not each step.
+function __customer_try_detour()
+{
+    if (route_index >= array_length(route_points)) return false;
+
+    var _goal = route_points[route_index];
+    var _gx = _goal.x;
+    var _gy = _goal.y;
+
+    // If a waypoint itself is now inside a moved table, a path
+    // cannot end there. Do not cut through the table to reach it.
+    if (!__customer_can_stand_at(_gx, _gy)) return false;
+
+    var _cell = 12;
+    var _cols = ceil(room_width / _cell) + 2;
+    var _rows = ceil(room_height / _cell) + 2;
+    var _count = _cols * _rows;
+
+    // Anchor the grid to the customer's precise current position.
+    // This ensures the first path point is always reachable.
+    var _sx = floor(x / _cell);
+    var _sy = floor(y / _cell);
+    var _tx = clamp(_sx + round((_gx - x) / _cell), 0, _cols - 1);
+    var _ty = clamp(_sy + round((_gy - y) / _cell), 0, _rows - 1);
+
+    _sx = clamp(_sx, 0, _cols - 1);
+    _sy = clamp(_sy, 0, _rows - 1);
+
+    var _start = _sy * _cols + _sx;
+    var _target = _ty * _cols + _tx;
+
+    var _seen = array_create(_count, false);
+    var _parent = array_create(_count, -1);
+    var _queue = array_create(_count, 0);
+    var _head = 0;
+    var _tail = 1;
+    _queue[0] = _start;
+    _seen[_start] = true;
+
+    var _found = false;
+    var _visits = 0;
+    var _visit_limit = min(_count, 7000);
+
+    while (_head < _tail && _visits < _visit_limit)
+    {
+        var _at = _queue[_head];
+        _head += 1;
+        _visits += 1;
+
+        if (_at == _target)
+        {
+            _found = true;
+            break;
+        }
+
+        var _cx = _at mod _cols;
+        var _cy = _at div _cols;
+
+        for (var _d = 0; _d < 4; _d++)
+        {
+            var _nx = _cx;
+            var _ny = _cy;
+            if (_d == 0) _nx += 1;
+            if (_d == 1) _nx -= 1;
+            if (_d == 2) _ny += 1;
+            if (_d == 3) _ny -= 1;
+
+            if (_nx < 0 || _nx >= _cols || _ny < 0 || _ny >= _rows) continue;
+
+            var _ni = _ny * _cols + _nx;
+            if (_seen[_ni]) continue;
+
+            var _wx = x + (_nx - _sx) * _cell;
+            var _wy = y + (_ny - _sy) * _cell;
+
+            if (_wx < 0 || _wy < 0 || _wx >= room_width || _wy >= room_height) continue;
+            if (!__customer_can_stand_at(_wx, _wy)) continue;
+
+            _seen[_ni] = true;
+            _parent[_ni] = _at;
+            _queue[_tail] = _ni;
+            _tail += 1;
+        }
+    }
+
+    if (!_found) return false;
+
+    // Walk backwards through the search result.
+    var _reverse = [];
+    var _node = _target;
+    while (_node != _start && _node != -1)
+    {
+        var _xx = _node mod _cols;
+        var _yy = _node div _cols;
+        array_push(_reverse, {
+            x: x + (_xx - _sx) * _cell,
+            y: y + (_yy - _sy) * _cell
+        });
+        _node = _parent[_node];
+    }
+
+    if (_node == -1) return false;
+
+    // Keep later waypoints, but insert the detour before the
+    // current one. Never discard the intended destination.
+    var _new_route = [];
+    for (var _i = array_length(_reverse) - 1; _i >= 0; _i--)
+    {
+        array_push(_new_route, _reverse[_i]);
+    }
+
+    for (var _j = route_index; _j < array_length(route_points); _j++)
+    {
+        array_push(_new_route, route_points[_j]);
+    }
+
+    route_points = _new_route;
+    route_index = 0;
+    return true;
+}
+
+// ----------------------------------------------------
 // Stuck detection for route-following states
 // ----------------------------------------------------
 function __customer_check_stuck()
@@ -449,13 +582,9 @@ function __customer_check_stuck()
     var _moved = point_distance(x, y, last_x, last_y);
 
     if (_moved < 0.05)
-    {
         stuck_timer += 1;
-    }
     else
-    {
         stuck_timer = 0;
-    }
 
     last_x = x;
     last_y = y;
@@ -464,13 +593,23 @@ function __customer_check_stuck()
     {
         stuck_timer = 0;
 
-        // Flip route side and rebuild route next step.
-        route_side_flip = !route_side_flip;
-        __customer_clear_path();
+        var _detoured = __customer_try_detour();
 
-        if (global.debug_mode)
+        if (!_detoured)
         {
-            show_debug_message("[Customer] Route retry / flipped side.");
+            // If the authored waypoint cannot be reached, retry
+            // with the opposite aisle around the destination table.
+            route_side_flip = !route_side_flip;
+            __customer_clear_path();
+        }
+
+        if (global.ok_debug)
+        {
+            show_debug_message(
+                _detoured
+                ? "[Customer] Blocked: routing around obstacle."
+                : "[Customer] Detour unavailable: retrying table side."
+            );
         }
     }
 }

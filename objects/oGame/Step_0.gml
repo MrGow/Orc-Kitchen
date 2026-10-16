@@ -1,11 +1,11 @@
 /// oGame — Step
-// Central ticking; main menu never advances the campaign.
+// Central ticking. Main menu never advances the campaign.
 
 global.frame += 1;
 
-// ----------------------------------------------------
-// Fullscreen toggle — available in every room
-// ----------------------------------------------------
+// ====================================================
+// FULLSCREEN — EVERY ROOM
+// ====================================================
 var _fullscreen_pressed = keyboard_check_pressed(vk_f11)
     || (keyboard_check(vk_alt) && keyboard_check_pressed(vk_enter));
 
@@ -24,9 +24,9 @@ if (_fullscreen_pressed)
     show_debug_message("[oGame] Fullscreen: " + string(global.is_fullscreen));
 }
 
-// ----------------------------------------------------
-// Main menu — no campaign simulation or game hotkeys
-// ----------------------------------------------------
+// ====================================================
+// MAIN MENU — NO GAMEPLAY TICKING
+// ====================================================
 if (room == MainMenuRoom)
 {
     global.game_state = "main_menu";
@@ -39,9 +39,9 @@ if (room == MainMenuRoom)
     exit;
 }
 
-// ----------------------------------------------------
-// Recipe menu toggle
-// ----------------------------------------------------
+// ====================================================
+// RECIPE MENU
+// ====================================================
 var _gp = 0;
 var _recipe_pressed = keyboard_check_pressed(ord("R"));
 
@@ -68,9 +68,9 @@ if (global.recipe_menu_open)
     exit;
 }
 
-// ----------------------------------------------------
-// Pause toggle
-// ----------------------------------------------------
+// ====================================================
+// PAUSE
+// ====================================================
 var _pause_pressed = keyboard_check_pressed(vk_escape)
     || keyboard_check_pressed(ord("P"));
 
@@ -94,9 +94,9 @@ global.player_can_move = true;
 global.player_can_interact = true;
 global.show_station_labels = keyboard_check(vk_tab);
 
-// ----------------------------------------------------
-// Day / shift state machine — only active in MessHall
-// ----------------------------------------------------
+// ====================================================
+// DAY / SHIFT STATE MACHINE — MESS HALL ONLY
+// ====================================================
 if (room == MessHall)
 {
     if (global.day_phase == "pre_shift")
@@ -116,9 +116,13 @@ if (room == MessHall)
             global.day_phase = "serving";
             global.shift_state = "serving";
             global.shift_timer = global.shift_time_limit;
+            global.shift_elapsed = 0;
             global.shift_banner_text = "WAR PARTY INCOMING!";
             global.shift_banner_timer = room_speed * 2;
-            show_debug_message("[oGame] Shift started.");
+
+            show_debug_message("[oGame] Serving started: "
+                + global.day_profile_name + ", target "
+                + string(global.day_target_customers));
         }
     }
     else if (global.day_phase == "serving")
@@ -126,17 +130,20 @@ if (room == MessHall)
         global.game_state = "kitchen";
         global.shift_state = "serving";
         global.can_leave_mess_hall = false;
-        global.shift_timer -= 1;
+
+        global.shift_elapsed += 1;
+        global.shift_timer = max(0, global.shift_time_limit - global.shift_elapsed);
 
         if (global.shift_timer <= 0)
         {
-            global.shift_timer = 0;
             global.day_phase = "closing";
             global.shift_state = "closing";
             global.shift_banner_text = "LAST CALL!";
             global.shift_banner_timer = room_speed * 3;
             global.closing_timer = room_speed * 90;
-            show_debug_message("[oGame] Last Call started.");
+            show_debug_message("[oGame] Last Call. Arrived: "
+                + string(global.customers_spawned) + "/"
+                + string(global.day_target_customers));
         }
     }
     else if (global.day_phase == "closing")
@@ -144,8 +151,6 @@ if (room == MessHall)
         global.game_state = "kitchen";
         global.shift_state = "closing";
         global.can_leave_mess_hall = false;
-
-        // No new arrivals. Existing customers can finish naturally.
         global.closing_timer = max(0, global.closing_timer - 1);
 
         if (instance_number(oCustomer) == 0 || global.closing_timer <= 0)
@@ -157,14 +162,14 @@ if (room == MessHall)
             global.shift_banner_text = "";
             global.shift_banner_timer = 0;
 
-            // Remove any stragglers BEFORE the summary is displayed.
-            // Destroy events (if added later) should not count them as angry.
+            // Stragglers are cleared without marking extra angry departures.
             with (oCustomer)
             {
                 if (target_table != noone && instance_exists(target_table))
                 {
                     var _tbl = target_table;
                     var _seat = target_seat;
+
                     if (_seat >= 0 && _seat < _tbl.seat_count)
                     {
                         if (_tbl.seat_customer[_seat] == id)
@@ -174,6 +179,7 @@ if (room == MessHall)
                         }
                     }
                 }
+
                 if (target_queue != noone && instance_exists(target_queue))
                 {
                     var _queue = target_queue;
@@ -183,11 +189,13 @@ if (room == MessHall)
                             _queue.queue_customer[_q] = noone;
                     }
                 }
+
                 instance_destroy();
             }
+
             global.active_customers = 0;
             global.customer_queue_length = 0;
-            show_debug_message("[oGame] Shift summary ready; customers cleared.");
+            show_debug_message("[oGame] Summary ready; customers cleared.");
         }
     }
     else if (global.day_phase == "shift_summary")
@@ -221,7 +229,7 @@ if (room == MessHall)
 }
 else
 {
-    // Non-kitchen phases never advance the shift.
+    // Non-kitchen phases never advance shift or spawn schedule.
     if (global.day_phase == "camp_map")
         global.game_state = "camp_map";
     else if (global.day_phase == "market")
@@ -232,15 +240,12 @@ else
     global.can_leave_mess_hall = false;
 }
 
-// ----------------------------------------------------
-// Banner timer
-// ----------------------------------------------------
+// ====================================================
+// BANNER / ECONOMY
+// ====================================================
 if (global.shift_banner_timer > 0)
     global.shift_banner_timer -= 1;
 
-// ----------------------------------------------------
-// Filth clamp and shift profit
-// ----------------------------------------------------
 global.filth = clamp(global.filth, 0, global.filth_max);
 
 global.shift_net_profit = global.shift_revenue
@@ -249,17 +254,20 @@ global.shift_net_profit = global.shift_revenue
     - global.shift_repair_costs
     - global.shift_wages;
 
-// ----------------------------------------------------
-// Debug hotkeys (only in MessHall)
-// ----------------------------------------------------
+// ====================================================
+// DEBUG HOTKEYS — MESS HALL ONLY
+// ====================================================
 if (global.ok_debug && room == MessHall)
 {
     if (keyboard_check_pressed(ord("1")))
     {
+        // Restart countdown without rerolling today's planned arrivals.
+        // Intended for testing at the start of the day.
         global.day_phase = "pre_shift";
         global.shift_state = "pre_shift";
         global.pre_shift_timer = global.pre_shift_time_limit;
         global.shift_timer = global.shift_time_limit;
+        global.shift_elapsed = 0;
         global.closing_timer = 0;
         global.can_leave_mess_hall = false;
         show_debug_message("[oGame] Debug: pre-shift restarted.");
@@ -300,6 +308,6 @@ if (global.ok_debug && room == MessHall)
         global.shift_state = "closing";
         global.closing_timer = 0;
         global.can_leave_mess_hall = false;
-        show_debug_message("[oGame] Debug: finish Last Call and show summary.");
+        show_debug_message("[oGame] Debug: finish Last Call.");
     }
 }

@@ -149,6 +149,36 @@ global.pre_shift_timer = global.pre_shift_time_limit;
 global.shift_time_limit = room_speed * 30;
 global.shift_timer = global.shift_time_limit;
 
+// ====================================================
+// DAY DIFFICULTY PROFILES — EDIT THESE FIVE DAYS
+// ====================================================
+// duration: length of SERVING (seconds)
+// minimum / maximum: randomized customer target for that day
+// weights: relative share of arrivals in EARLY / MIDDLE / LATE
+//   A day's total is divided between the sections based on these
+//   weights, then each arrival gets a random time in its section.
+//   This creates intentional rushes with natural variation.
+// Windows: early 6-30%, middle 30-60%, late 60-90%.
+// After Day 5, repeat Day 5 settings until more days are authored.
+
+global.day_profiles = [
+    { name: "Quiet Opening",  duration: 55,  minimum: 3,  maximum: 4,  weights: [3, 2, 1] },
+    { name: "Steady Trade",   duration: 70,  minimum: 4,  maximum: 6,  weights: [2, 3, 2] },
+    { name: "Lunch Rush",     duration: 85,  minimum: 6,  maximum: 8,  weights: [1, 6, 2] },
+    { name: "Early Stampede", duration: 100, minimum: 8,  maximum: 10, weights: [6, 2, 2] },
+    { name: "Warband Feast",  duration: 115, minimum: 10, maximum: 13, weights: [2, 3, 6] }
+];
+
+// These are rolled once when each new day's MessHall begins.
+global.day_profile_name = "";
+global.day_target_customers = 0;
+global.day_spawn_times = [];
+global.day_schedule_day = -1;
+global.shift_elapsed = 0;
+
+// Different results between game runs.
+randomize();
+
 // Summary screen.
 global.summary_timer = 0;
 global.summary_min_time = room_speed * 2;
@@ -160,6 +190,34 @@ global.shift_banner_timer = 0;
 // Mess Hall exit permission.
 global.can_leave_mess_hall = false;
 
+// ====================================================
+// MESS HALL TABLE OWNERSHIP
+// ====================================================
+
+// Each index corresponds to a physical table in MessHall.
+//
+// 0 = Small table (starting table)
+// 1 = Medium table 1
+// 2 = Medium table 2
+// 3 = Large table 1
+// 4 = Large table 2
+
+global.tables_owned = [
+    true,
+    false,
+    false,
+    false,
+    false
+];
+
+// Carpenter prices for each location.
+global.table_prices = [
+    0,
+    25,
+    40,
+    65,
+    90
+];
 
 // ====================================================
 // ECONOMY

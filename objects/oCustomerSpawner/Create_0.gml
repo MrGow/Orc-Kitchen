@@ -1,14 +1,20 @@
 /// oCustomerSpawner — Create Event
+// The day's total and individual arrival times come from oGame.
 
-spawn_delay = room_speed * 3;
-spawn_timer = spawn_delay;
-
-// For testing.
-max_spawned_for_test = 30;
+// Number of arrivals already created during the current day.
 spawned_count = 0;
 
-debug_spawner = true;
+// If a scheduled spawn is blocked by full tables + queue,
+// retry periodically without discarding that customer.
+retry_timer = 0;
+retry_delay = max(1, round(room_speed * 0.5));
 
+// Avoid more than one new customer every 0.5 seconds,
+// even when multiple schedules have become overdue.
+spawn_cooldown = 0;
+spawn_cooldown_length = max(1, round(room_speed * 0.5));
+
+debug_spawner = true;
 depth = 100000;
 
-show_debug_message("[CustomerSpawner] Created.");
+show_debug_message("[CustomerSpawner] Created. Waiting for serving.");

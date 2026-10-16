@@ -10,8 +10,8 @@
   "name":"oMarketController",
   "overriddenProperties":[],
   "parent":{
-    "name":"ControllerObjects",
-    "path":"folders/Objects/ControllerObjects.yy",
+    "name":"MarketObjects",
+    "path":"folders/Objects/MarketObjects.yy",
   },
   "parentObjectId":null,
   "persistent":false,
