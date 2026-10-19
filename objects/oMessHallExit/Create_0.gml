@@ -1,17 +1,32 @@
 /// oMessHallExit — Create Event
 
-// Automatic mess hall exit trigger.
-// Place this at the bottom doorway / outside the tent.
-// Give it a rectangle sprite/mask and scale it in the room editor.
+// ====================================================
+// EXIT TEXT
+// ====================================================
 
 exit_text = "";
 exit_text_timer = 0;
 
+
+// ====================================================
+// EXIT STATE
+// ====================================================
+
 // Prevent repeated room_goto calls.
 triggered = false;
 
-// If true, the trigger shows its rectangle in debug mode.
+// Starts disarmed.
+//
+// The player must completely leave the doorway
+// before this exit can activate.
+exit_armed = false;
+
+
+// ====================================================
+// DEBUG
+// ====================================================
+
 debug_draw = true;
 
-// This object should be easy to see/debug, but it does not need depth sorting.
+// Keep existing depth.
 depth = -100;

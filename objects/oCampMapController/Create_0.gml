@@ -1,9 +1,10 @@
-/// oCampMapController — Create Event
+/// oCampMapController — Create
 
 selected = 0;
 
 menu_items = [
     "Market",
+    "Central Plaza",
     "Home",
     "Return to Mess Hall"
 ];

@@ -1,19 +1,27 @@
 /// oMessHallExit — Draw Event
 
-// ----------------------------------------------------
-// Debug trigger rectangle
-// ----------------------------------------------------
+// ====================================================
+// DEBUG TRIGGER RECTANGLE
+// ====================================================
+
 if (global.ok_debug && debug_draw)
 {
     draw_set_alpha(0.30);
 
-    if (global.can_leave_mess_hall)
+    if (!exit_armed)
     {
-        draw_set_color(c_lime);
+        // Player has not cleared doorway yet.
+        draw_set_color(c_red);
+    }
+    else if (!global.can_leave_mess_hall)
+    {
+        // Exit armed but shift still active.
+        draw_set_color(c_orange);
     }
     else
     {
-        draw_set_color(c_red);
+        // Armed and available.
+        draw_set_color(c_lime);
     }
 
     draw_rectangle(
@@ -28,18 +36,36 @@ if (global.ok_debug && debug_draw)
 
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
+
     draw_set_color(c_white);
+
+    var _status = "";
+
+    if (!exit_armed)
+    {
+        _status = "DISARMED";
+    }
+    else if (!global.can_leave_mess_hall)
+    {
+        _status = "SHIFT LOCKED";
+    }
+    else
+    {
+        _status = "READY";
+    }
 
     draw_text(
         (bbox_left + bbox_right) * 0.5,
         bbox_top - 16,
-        "MESS HALL EXIT"
+        "MESS HALL EXIT - " + _status
     );
 }
 
-// ----------------------------------------------------
-// Blocked text
-// ----------------------------------------------------
+
+// ====================================================
+// BLOCKED MESSAGE
+// ====================================================
+
 if (exit_text_timer > 0)
 {
     var _tx = (bbox_left + bbox_right) * 0.5;
@@ -69,10 +95,13 @@ if (exit_text_timer > 0)
     );
 }
 
-// ----------------------------------------------------
-// Reset draw state
-// ----------------------------------------------------
+
+// ====================================================
+// RESET DRAW STATE
+// ====================================================
+
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
+
 draw_set_alpha(1);
 draw_set_color(c_white);

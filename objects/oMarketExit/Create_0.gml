@@ -1,6 +1,26 @@
-/// oMarketExit — Create Event
-// Give this a rectangular sprite with a FULL RECTANGLE collision mask.
-// Stretch it in the room editor to cover the way out.
-triggered = false;
-debug_draw = true;
-depth = 1000;
+/// oMarketExit — Create
+
+// ====================================================
+// EXIT RECTANGLE
+// ====================================================
+
+exit_width = 70;
+exit_height = 24;
+
+
+// ====================================================
+// STATE
+// ====================================================
+
+// Exit starts inactive.
+// Player must leave the doorway before it arms.
+exit_armed = false;
+
+exit_triggered = false;
+
+
+// ====================================================
+// DEBUG
+// ====================================================
+
+depth = -10000;

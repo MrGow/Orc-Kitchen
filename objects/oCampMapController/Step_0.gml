@@ -1,4 +1,8 @@
-/// oCampMapController — Step Event
+/// oCampMapController — Step
+
+// ====================================================
+// INPUT
+// ====================================================
 
 var _up =
     keyboard_check_pressed(vk_up)
@@ -13,6 +17,11 @@ var _confirm =
     || keyboard_check_pressed(vk_enter)
     || keyboard_check_pressed(ord("E"));
 
+
+// ====================================================
+// MENU NAVIGATION
+// ====================================================
+
 if (_up)
 {
     selected -= 1;
@@ -23,7 +32,16 @@ if (_down)
     selected += 1;
 }
 
-selected = clamp(selected, 0, array_length(menu_items) - 1);
+selected = clamp(
+    selected,
+    0,
+    array_length(menu_items) - 1
+);
+
+
+// ====================================================
+// CONFIRM LOCATION
+// ====================================================
 
 if (_confirm)
 {
@@ -32,6 +50,10 @@ if (_confirm)
     if (_choice == "Market")
     {
         room_goto(Market);
+    }
+    else if (_choice == "Central Plaza")
+    {
+        room_goto(CentralPlaza);
     }
     else if (_choice == "Home")
     {

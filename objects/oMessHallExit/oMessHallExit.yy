@@ -10,8 +10,8 @@
   "name":"oMessHallExit",
   "overriddenProperties":[],
   "parent":{
-    "name":"Teleport Objects",
-    "path":"folders/Objects/Teleport Objects.yy",
+    "name":"MessHallObjects",
+    "path":"folders/Objects/MessHallObjects.yy",
   },
   "parentObjectId":null,
   "persistent":false,
