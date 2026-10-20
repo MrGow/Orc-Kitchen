@@ -1,5 +1,16 @@
-
 /// oGame — Draw GUI
+
+// ====================================================
+// ORC SURVIVORS — HIDE MAIN GAME HUD
+// ====================================================
+
+// The arcade minigame uses its own HUD.
+// Suppress the regular Orc Kitchen interface.
+
+if (room == OrcSurvivorsRoom)
+{
+    exit;
+}
 
 // Main menu uses its own UI.
 if (room == MainMenuRoom)
