@@ -1,6 +1,6 @@
 {
   "$GMFont":"",
-  "%Name":"AlemendraBold16",
+  "%Name":"AlmendraBold16",
   "AntiAlias":1,
   "applyKerning":0,
   "ascender":20,
@@ -117,7 +117,7 @@
   "last":0,
   "lineHeight":28,
   "maintainGms1Font":false,
-  "name":"AlemendraBold16",
+  "name":"AlmendraBold16",
   "parent":{
     "name":"Fonts",
     "path":"folders/Fonts.yy",

@@ -2,6 +2,55 @@
 
 if (room != OrcSurvivorsRoom) exit;
 
+// ====================================================
+// TITLE SCREEN — NO GAMEPLAY, NO EVENING SPENT
+// ====================================================
+if (os_state == "title")
+{
+    title_frame += 1;
+
+    // Exit title without spending the evening.
+    if (keyboard_check_pressed(vk_backspace)
+        || keyboard_check_pressed(vk_escape))
+    {
+        global.game_state = "home";
+        global.day_phase = "home";
+        global.recipe_menu_open = false;
+        global.paused = false;
+        global.player_can_move = false;
+        global.player_can_interact = false;
+        room_goto(Home);
+        exit;
+    }
+
+    var _start_pressed =
+        keyboard_check_pressed(vk_space)
+        || keyboard_check_pressed(vk_enter)
+        || keyboard_check_pressed(ord("E"));
+
+    if (gamepad_is_connected(0))
+    {
+        if (gamepad_button_check_pressed(0, gp_face1))
+            _start_pressed = true;
+    }
+
+    if (_start_pressed)
+    {
+        // Arcade combat currently implements WAVES 1-10 only.
+        // A checkpoint of Wave 11 is NOT reset: this is explicitly a replay.
+        os_state = "playing";
+        wave_timer = wave_duration;
+        current_wave = 1;
+        boss_spawned = false;
+        boss_id = noone;
+        enemy_spawn_timer = 1;
+        initial_enemies_spawned = false;
+        global.evening_activity_used = true;
+        show_debug_message("[Orc Survivors] Started WAVES 1-10.");
+    }
+    exit;
+}
+
 // After beating wave 10, show a victory card, then go Home.
 if (os_state == "victory")
 {

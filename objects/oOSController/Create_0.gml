@@ -9,7 +9,13 @@ if (instance_number(oOSController) > 1)
 scr_player_upgrades_init();
 
 // Timed waves 1-10. Each wave is 45 seconds of ACTIVE gameplay.
-os_state = "playing";
+// The arcade opens on its own title screen, not directly in combat.
+os_state = "title";
+title_frame = 0;
+title_logo_sprite = asset_get_index("sprOSLogo");
+// Waves 11-50 are not coded yet. Existing Wave 11 progress is retained;
+// the title offers a clearly labelled replay of the implemented block.
+
 waves_per_evening = 10;
 // Current prototype always tests waves 1-10 until the first block is cleared.
 // Later sessions (11-20 etc.) will be added separately.
@@ -134,4 +140,4 @@ global.recipe_menu_open = false;
 global.paused = false;
 depth = -10000;
 
-show_debug_message("[Orc Survivors] Starting combat & XP prototype.");
+show_debug_message("[Orc Survivors] Arcade title ready.");

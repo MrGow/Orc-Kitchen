@@ -1,6 +1,6 @@
 /// oMessHallPlayerSpawn — Draw
 
-if (global.ok_debug)
+/*if (global.ok_debug)
 {
     draw_set_alpha(0.45);
     draw_set_color(c_aqua);
