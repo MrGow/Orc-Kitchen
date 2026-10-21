@@ -75,6 +75,7 @@
     {"id":{"name":"oHomeBed","path":"objects/oHomeBed/oHomeBed.yy",},},
     {"id":{"name":"oHomeExit","path":"objects/oHomeExit/oHomeExit.yy",},},
     {"id":{"name":"oHomePlayerSpawn","path":"objects/oHomePlayerSpawn/oHomePlayerSpawn.yy",},},
+    {"id":{"name":"oInput","path":"objects/oInput/oInput.yy",},},
     {"id":{"name":"oMainMenu","path":"objects/oMainMenu/oMainMenu.yy",},},
     {"id":{"name":"oMarketController","path":"objects/oMarketController/oMarketController.yy",},},
     {"id":{"name":"oMarketExit","path":"objects/oMarketExit/oMarketExit.yy",},},
