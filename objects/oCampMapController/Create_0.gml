@@ -8,4 +8,4 @@ menu_items = [
     "Home",
     "Return to Mess Hall"
 ];
-depth = -100000;
+depth = -1000;

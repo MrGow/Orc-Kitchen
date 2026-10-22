@@ -80,4 +80,4 @@ shake_timer = 0;
 shake_strength = 3;
 
 // Controller draws full screen in Draw GUI End above the normal HUD.
-depth = -100000;
+depth = -1000;
