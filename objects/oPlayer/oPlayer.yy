@@ -32,8 +32,8 @@
   "resourceVersion":"2.0",
   "solid":false,
   "spriteId":{
-    "name":"spriteMainOrcIdle",
-    "path":"sprites/spriteMainOrcIdle/spriteMainOrcIdle.yy",
+    "name":"spriteChefIdle",
+    "path":"sprites/spriteChefIdle/spriteChefIdle.yy",
   },
   "spriteMaskId":null,
   "visible":true,

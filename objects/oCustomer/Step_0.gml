@@ -1,619 +1,291 @@
-/// oCustomer — Step Event
+/// oCustomer — Step (FULL REPLACEMENT)
+/// Fixed-footprint navigation for final Mess Hall layout.
+/// Food, payment, patience and exit states preserved.
 
 if (global.paused) exit;
-
 depth = -y;
+if (reaction_timer > 0) reaction_timer -= 1;
 
-if (reaction_timer > 0)
+// ====================================================
+// COLLISION: use fixed customer mask against solid furniture
+// ====================================================
+function __customer_can_stand_at(_xx, _yy)
 {
-    reaction_timer -= 1;
-}
+    if (_xx < feet_half_w || _yy < feet_half_h
+        || _xx >= room_width - feet_half_w
+        || _yy >= room_height - feet_half_h) return false;
 
-// ----------------------------------------------------
-// Local helper: collision check
-// ----------------------------------------------------
-function __customer_can_stand_at(_x, _y)
-{
     var _old_x = x;
     var _old_y = y;
+    x = _xx;
+    y = _yy;
 
-    x = _x;
-    y = _y;
-
-    var _blocked = false;
-
-    if (object_exists(oSolidStation))
-    {
-        if (place_meeting(x, y, oSolidStation))
-        {
-            _blocked = true;
-        }
-    }
+    // Includes children, such as oSolidBlock.
+    var _blocked = place_meeting(x, y, oSolidStation);
 
     x = _old_x;
     y = _old_y;
-
     return !_blocked;
 }
 
-// ----------------------------------------------------
-// Local helper: move with simple collision sliding
-// ----------------------------------------------------
-function __customer_move_to(_tx, _ty, _spd)
-{
-    var _d = point_distance(x, y, _tx, _ty);
-
-    if (_d <= 2)
-    {
-        if (__customer_can_stand_at(_tx, _ty))
-        {
-            x = _tx;
-            y = _ty;
-            return true;
-        }
-        return false;
-    }
-
-    var _dir = point_direction(x, y, _tx, _ty);
-
-    var _mx = lengthdir_x(_spd, _dir);
-    var _my = lengthdir_y(_spd, _dir);
-
-    // Do not overshoot.
-    if (abs(_mx) > abs(_tx - x)) _mx = _tx - x;
-    if (abs(_my) > abs(_ty - y)) _my = _ty - y;
-
-    // Move X first.
-    if (_mx != 0)
-    {
-        if (__customer_can_stand_at(x + _mx, y))
-        {
-            x += _mx;
-        }
-        else
-        {
-            var _sx = sign(_mx);
-
-            repeat (abs(round(_mx)))
-            {
-                if (__customer_can_stand_at(x + _sx, y))
-                {
-                    x += _sx;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-    }
-
-    // Then move Y.
-    if (_my != 0)
-    {
-        if (__customer_can_stand_at(x, y + _my))
-        {
-            y += _my;
-        }
-        else
-        {
-            var _sy = sign(_my);
-
-            repeat (abs(round(_my)))
-            {
-                if (__customer_can_stand_at(x, y + _sy))
-                {
-                    y += _sy;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-    }
-
-    return false;
-}
-
-// ----------------------------------------------------
-// Route helpers
-// ----------------------------------------------------
 function __customer_clear_path()
 {
     route_points = [];
     route_index = 0;
 }
 
-function __customer_add_path_point(_x, _y)
-{
-    array_push(route_points, { x: _x, y: _y });
-}
-
-function __customer_get_seat_facing(_tbl, _s)
-{
-    var _facing = "up";
-
-    if (_tbl != noone && instance_exists(_tbl))
-    {
-        if (variable_instance_exists(_tbl, "seat_facing"))
-        {
-            if (is_array(_tbl.seat_facing))
-            {
-                if (_s >= 0 && _s < array_length(_tbl.seat_facing))
-                {
-                    _facing = _tbl.seat_facing[_s];
-                }
-            }
-        }
-    }
-
-    return _facing;
-}
-
-// ----------------------------------------------------
-// Build route to assigned table seat
-// ----------------------------------------------------
-function __customer_build_table_path()
+// ====================================================
+// FIND WALKABLE PATH: 12px grid, 4-way (no corner cutting)
+// Searches the actual room and all active furniture collisions.
+// The seat itself may overlap a chair collision rectangle, so
+// choose a reachable point NEAR the seat, then seat the customer.
+// ====================================================
+function __customer_route_to(_tx, _ty, _seat_goal, _seat_facing)
 {
     __customer_clear_path();
-
-    if (target_table == noone || !instance_exists(target_table)) exit;
-
-    var _tbl = target_table;
-    var _s = target_seat;
-
-    if (_s < 0 || _s >= _tbl.seat_count) exit;
-
-    var _seat_x = _tbl.x + _tbl.seat_xoff[_s];
-    var _seat_y = _tbl.y + _tbl.seat_yoff[_s];
-
-    var _facing = __customer_get_seat_facing(_tbl, _s);
-
-    var _tw = sprite_get_width(_tbl.sprite_index);
-    var _th = sprite_get_height(_tbl.sprite_index);
-
-    // ------------------------------------------------
-    // Pick a side/aisle point.
-    // Normally use the side closest to where the customer currently is.
-    // If stuck, route_side_flip swaps side.
-    // ------------------------------------------------
-    var _side_x;
-
-    var _normally_left = (x < _tbl.x);
-
-    if (route_side_flip)
-    {
-        _normally_left = !_normally_left;
-    }
-
-    if (_normally_left)
-    {
-        _side_x = _tbl.x - _tw * 0.5 - 40;
-    }
-    else
-    {
-        _side_x = _tbl.x + _tw * 0.5 + 40;
-    }
-
-    // ------------------------------------------------
-    // Approach from correct seating side.
-    // Top seats approach from above table.
-    // Bottom seats approach from below table.
-    // ------------------------------------------------
-    var _approach_x = _seat_x;
-    var _approach_y = _seat_y;
-
-    if (_facing == "down")
-    {
-        // Top-side seat: customer sits above table, facing down.
-        _approach_y = _tbl.y - _th - 40;
-    }
-    else
-    {
-        // Bottom-side seat: customer sits below table, facing up.
-        _approach_y = _tbl.y + 52;
-    }
-
-    // Route:
-    // 1. move to side/aisle line
-    // 2. move across to seat approach
-    // 3. step into seat
-    __customer_add_path_point(_side_x, _approach_y);
-    __customer_add_path_point(_approach_x, _approach_y);
-    __customer_add_path_point(_seat_x, _seat_y);
-}
-
-// ----------------------------------------------------
-// Build route back to spawn point
-// Uses orthogonal movement to avoid diagonal table scraping.
-// ----------------------------------------------------
-function __customer_build_exit_path()
-{
-    __customer_clear_path();
-
-    // ------------------------------------------------
-    // Tunable exit routing values
-    // ------------------------------------------------
-    var _clearance = 64;
-
-    // Pick a broad horizontal lane near the bottom exit.
-    // Adjust this number if needed.
-    var _exit_lane_y = room_height - 120;
-
-    var _exit_x = spawn_x;
-    var _exit_y = spawn_y;
-
-    // ------------------------------------------------
-    // If leaving from a table, get clear of that table first.
-    // ------------------------------------------------
-    if (target_table != noone && instance_exists(target_table) && target_seat >= 0)
-    {
-        var _tbl = target_table;
-        var _s = target_seat;
-
-        if (_s >= 0 && _s < _tbl.seat_count)
-        {
-            var _seat_x = _tbl.x + _tbl.seat_xoff[_s];
-            var _seat_y = _tbl.y + _tbl.seat_yoff[_s];
-
-            var _facing = __customer_get_seat_facing(_tbl, _s);
-
-            var _tw = sprite_get_width(_tbl.sprite_index);
-            var _th = sprite_get_height(_tbl.sprite_index);
-
-            // ----------------------------------------
-            // 1. Step away from the table on the side
-            //    the customer is sitting on.
-            // ----------------------------------------
-            var _away_x = _seat_x;
-            var _away_y = _seat_y;
-
-            if (_facing == "down")
-            {
-                // Top-side seat.
-                // Move further above table first.
-                _away_y = _tbl.y - _th - _clearance;
-            }
-            else
-            {
-                // Bottom-side seat.
-                // Move below table first.
-                _away_y = _tbl.y + _clearance;
-            }
-
-            // ----------------------------------------
-            // 2. Move horizontally clear of the table.
-            //    Pick the side closer to the exit/spawn.
-            // ----------------------------------------
-            var _side_x;
-
-            if (_exit_x < _tbl.x)
-            {
-                _side_x = _tbl.x - _tw * 0.5 - _clearance;
-            }
-            else
-            {
-                _side_x = _tbl.x + _tw * 0.5 + _clearance;
-            }
-
-            // ----------------------------------------
-            // 3. Use Manhattan/orthogonal exit movement.
-            //    No diagonal from table to exit.
-            // ----------------------------------------
-            __customer_add_path_point(_away_x, _away_y);
-            __customer_add_path_point(_side_x, _away_y);
-            __customer_add_path_point(_side_x, _exit_lane_y);
-            __customer_add_path_point(_exit_x, _exit_lane_y);
-        }
-    }
-
-    // Final step into the actual spawn/exit point.
-    __customer_add_path_point(_exit_x, _exit_y);
-}
-
-// ----------------------------------------------------
-// Build route to queue slot
-// Queue movement uses one shared line route:
-//
-// spawn
-// -> slightly up through doorway
-// -> left/right to queue column
-// -> straight up the queue line
-// -> stop at assigned queue slot
-// ----------------------------------------------------
-function __customer_build_queue_path()
-{
-    __customer_clear_path();
-
-    // ------------------------------------------------
-    // Target queue slot
-    // ------------------------------------------------
-    var _qx = queue_x;
-    var _qy = queue_y;
-
-    // ------------------------------------------------
-    // Shared queue column
-    // Everyone should move to the SAME x column.
-    // ------------------------------------------------
-    var _queue_column_x = _qx;
-
-    if (target_queue != noone && instance_exists(target_queue))
-    {
-        _queue_column_x = target_queue.x;
-    }
-
-    // ------------------------------------------------
-    // Door entry lane.
-    // This should be only slightly above the spawn/door.
-    // ------------------------------------------------
-    var _door_entry_y = y - 56;
-
-    _door_entry_y = clamp(
-        _door_entry_y,
-        96,
-        room_height - 80
-    );
-
-    // ------------------------------------------------
-    // Route:
-    // 1. Move slightly up through doorway.
-    // 2. Move horizontally to the queue column.
-    // 3. Move vertically up the queue line.
-    // 4. Final tiny correction to exact slot if needed.
-    // ------------------------------------------------
-    __customer_add_path_point(x, _door_entry_y);
-    __customer_add_path_point(_queue_column_x, _door_entry_y);
-    __customer_add_path_point(_queue_column_x, _qy);
-    __customer_add_path_point(_qx, _qy);
-}
-
-// ----------------------------------------------------
-// Build route out of queue before heading to a table
-// Uses the same line discipline as entering the queue.
-// ----------------------------------------------------
-function __customer_build_leave_queue_path()
-{
-    __customer_clear_path();
-
-    // ------------------------------------------------
-    // Queue column.
-    // Keep target_queue alive until this path finishes.
-    // ------------------------------------------------
-    var _queue_column_x = x;
-
-    if (target_queue != noone && instance_exists(target_queue))
-    {
-        _queue_column_x = target_queue.x;
-    }
-
-    // ------------------------------------------------
-    // Door/entry lane.
-    // This should match the queue entry path:
-    // just inside the bottom entrance, not deep in the room.
-    // ------------------------------------------------
-    var _door_entry_y = spawn_y - 56;
-
-    _door_entry_y = clamp(
-        _door_entry_y,
-        96,
-        room_height - 80
-    );
-
-    // ------------------------------------------------
-    // Route:
-    // 1. Move to the queue column if needed.
-    // 2. Move straight down the queue column.
-    // 3. Move horizontally back to the safe central/door lane.
-    //
-    // After this, the normal walking_to_table route takes over.
-    // ------------------------------------------------
-    __customer_add_path_point(_queue_column_x, y);
-    __customer_add_path_point(_queue_column_x, _door_entry_y);
-    __customer_add_path_point(spawn_x, _door_entry_y);
-}
-
-// ----------------------------------------------------
-// Follow current waypoint route
-// ----------------------------------------------------
-function __customer_follow_path(_spd)
-{
-    if (array_length(route_points) <= 0)
-    {
-        return true;
-    }
-
-    if (route_index >= array_length(route_points))
-    {
-        return true;
-    }
-
-    var _pt = route_points[route_index];
-
-    var _arrived = __customer_move_to(_pt.x, _pt.y, _spd);
-
-    if (_arrived)
-    {
-        route_index += 1;
-
-        if (route_index >= array_length(route_points))
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// ----------------------------------------------------
-// Obstacle-aware detour when a route becomes blocked
-// ----------------------------------------------------
-// Builds a short grid search around the customer's actual position.
-// Unlike flipping the target table's side, this can route around
-// OTHER tables/stations which are in the way.
-//
-// Grid uses the real customer collision mask via can_stand_at.
-// Routes are calculated only after getting stuck, not each step.
-function __customer_try_detour()
-{
-    if (route_index >= array_length(route_points)) return false;
-
-    var _goal = route_points[route_index];
-    var _gx = _goal.x;
-    var _gy = _goal.y;
-
-    // If a waypoint itself is now inside a moved table, a path
-    // cannot end there. Do not cut through the table to reach it.
-    if (!__customer_can_stand_at(_gx, _gy)) return false;
 
     var _cell = 12;
-    var _cols = ceil(room_width / _cell) + 2;
-    var _rows = ceil(room_height / _cell) + 2;
-    var _count = _cols * _rows;
+    var _cols = ceil(room_width / _cell) + 1;
+    var _rows = ceil(room_height / _cell) + 1;
+    var _total = _cols * _rows;
 
-    // Anchor the grid to the customer's precise current position.
-    // This ensures the first path point is always reachable.
+    // Grid points are anchored to this customer's precise position.
     var _sx = floor(x / _cell);
     var _sy = floor(y / _cell);
-    var _tx = clamp(_sx + round((_gx - x) / _cell), 0, _cols - 1);
-    var _ty = clamp(_sy + round((_gy - y) / _cell), 0, _rows - 1);
-
-    _sx = clamp(_sx, 0, _cols - 1);
-    _sy = clamp(_sy, 0, _rows - 1);
+    var _origin_x = x - _sx * _cell;
+    var _origin_y = y - _sy * _cell;
 
     var _start = _sy * _cols + _sx;
-    var _target = _ty * _cols + _tx;
-
-    var _seen = array_create(_count, false);
-    var _parent = array_create(_count, -1);
-    var _queue = array_create(_count, 0);
+    var _seen = array_create(_total, false);
+    var _parent = array_create(_total, -1);
+    var _queue = array_create(_total, 0);
     var _head = 0;
     var _tail = 1;
     _queue[0] = _start;
     _seen[_start] = true;
 
-    var _found = false;
-    var _visits = 0;
-    var _visit_limit = min(_count, 7000);
+    var _best = -1;
+    var _best_score = 1000000000;
+	var _best_distance = 1000000000;
 
-    while (_head < _tail && _visits < _visit_limit)
+    while (_head < _tail)
     {
-        var _at = _queue[_head];
-        _head += 1;
-        _visits += 1;
+        var _node = _queue[_head];
+        _head++;
 
-        if (_at == _target)
+        var _cx = _node mod _cols;
+        var _cy = _node div _cols;
+        var _wx = _origin_x + _cx * _cell;
+        var _wy = _origin_y + _cy * _cell;
+        var _dist = point_distance(_wx, _wy, _tx, _ty);
+
+        var _candidate = false;
+        var _score = _dist;
+
+        if (_seat_goal)
         {
-            _found = true;
-            break;
+            // Do not select distant points and teleport to a chair.
+            if (_dist <= 30)
+            {
+                _candidate = true;
+                // Prefer the intended approach side of the table.
+                if (_seat_facing == "down" && _wy > _ty + 5) _score += 25;
+                if (_seat_facing == "up" && _wy < _ty - 5) _score += 25;
+            }
+        }
+        else
+        {
+            // Ordinary queue and exit positions need a precise arrival.
+            if (_dist <= 10) _candidate = true;
         }
 
-        var _cx = _at mod _cols;
-        var _cy = _at div _cols;
+        if (_candidate && _score < _best_score)
+        {
+            _best = _node;
+            _best_score = _score;
+            _best_distance = _dist;
+            if (!_seat_goal && _dist < 0.1) break;
+        }
 
-        for (var _d = 0; _d < 4; _d++)
+        for (var _dir = 0; _dir < 4; _dir++)
         {
             var _nx = _cx;
             var _ny = _cy;
-            if (_d == 0) _nx += 1;
-            if (_d == 1) _nx -= 1;
-            if (_d == 2) _ny += 1;
-            if (_d == 3) _ny -= 1;
+            if (_dir == 0) _nx++;
+            if (_dir == 1) _nx--;
+            if (_dir == 2) _ny++;
+            if (_dir == 3) _ny--;
 
-            if (_nx < 0 || _nx >= _cols || _ny < 0 || _ny >= _rows) continue;
+            if (_nx < 0 || _ny < 0 || _nx >= _cols || _ny >= _rows) continue;
+            var _next = _ny * _cols + _nx;
+            if (_seen[_next]) continue;
 
-            var _ni = _ny * _cols + _nx;
-            if (_seen[_ni]) continue;
+            var _px = _origin_x + _nx * _cell;
+            var _py = _origin_y + _ny * _cell;
+            if (!__customer_can_stand_at(_px, _py)) continue;
 
-            var _wx = x + (_nx - _sx) * _cell;
-            var _wy = y + (_ny - _sy) * _cell;
+            // Check midpoint too, to prevent cutting through thin walls.
+            if (!__customer_can_stand_at((_wx + _px) * 0.5, (_wy + _py) * 0.5)) continue;
 
-            if (_wx < 0 || _wy < 0 || _wx >= room_width || _wy >= room_height) continue;
-            if (!__customer_can_stand_at(_wx, _wy)) continue;
-
-            _seen[_ni] = true;
-            _parent[_ni] = _at;
-            _queue[_tail] = _ni;
-            _tail += 1;
+            _seen[_next] = true;
+            _parent[_next] = _node;
+            _queue[_tail] = _next;
+            _tail++;
         }
     }
 
-    if (!_found) return false;
-
-    // Walk backwards through the search result.
-    var _reverse = [];
-    var _node = _target;
-    while (_node != _start && _node != -1)
+    if (_best == -1)
     {
-        var _xx = _node mod _cols;
-        var _yy = _node div _cols;
-        array_push(_reverse, {
-            x: x + (_xx - _sx) * _cell,
-            y: y + (_yy - _sy) * _cell
-        });
-        _node = _parent[_node];
+        if (global.ok_debug) show_debug_message("[Customer] No reachable path to (" + string(_tx) + "," + string(_ty) + "). Check table/queue positions and aisle widths.");
+        return false;
     }
 
-    if (_node == -1) return false;
+    var _reverse = [];
+    var _cur = _best;
+    while (_cur != _start && _cur != -1)
+    {
+        var _ix = _cur mod _cols;
+        var _iy = _cur div _cols;
+        array_push(_reverse, {x:_origin_x + _ix * _cell, y:_origin_y + _iy * _cell});
+        _cur = _parent[_cur];
+    }
+    if (_cur == -1) return false;
 
-    // Keep later waypoints, but insert the detour before the
-    // current one. Never discard the intended destination.
-    var _new_route = [];
     for (var _i = array_length(_reverse) - 1; _i >= 0; _i--)
     {
-        array_push(_new_route, _reverse[_i]);
+        array_push(route_points, _reverse[_i]);
     }
 
-    for (var _j = route_index; _j < array_length(route_points); _j++)
+    var _bx = _origin_x + (_best mod _cols) * _cell;
+    var _by = _origin_y + (_best div _cols) * _cell;
+
+    // Store safe standing spot for customers leaving a seat later.
+    if (_seat_goal)
     {
-        array_push(_new_route, route_points[_j]);
+        seat_approach_x = _bx;
+        seat_approach_y = _by;
+    }
+    else if (__customer_can_stand_at(_tx, _ty))
+    {
+        // Finish exactly on the target when free.
+        array_push(route_points, {x:_tx, y:_ty});
     }
 
-    route_points = _new_route;
     route_index = 0;
     return true;
 }
 
-// ----------------------------------------------------
-// Stuck detection for route-following states
-// ----------------------------------------------------
+function __customer_get_seat_facing(_tbl, _s)
+{
+    if (instance_exists(_tbl)
+        && variable_instance_exists(_tbl, "seat_facing")
+        && is_array(_tbl.seat_facing)
+        && _s >= 0 && _s < array_length(_tbl.seat_facing))
+    {
+        return _tbl.seat_facing[_s];
+    }
+    return "up";
+}
+
+function __customer_build_queue_path()
+{
+    // Direct, obstacle-aware routing: new queue is above entrance.
+    return __customer_route_to(queue_x, queue_y, false, "");
+}
+
+function __customer_build_leave_queue_path()
+{
+    // Compatibility for older queue state; avoid walking back to door.
+    return __customer_build_table_path();
+}
+
+function __customer_build_table_path()
+{
+    if (!instance_exists(target_table) || target_seat < 0)
+    {
+        __customer_clear_path();
+        return false;
+    }
+    var _tbl = target_table;
+    if (target_seat >= _tbl.seat_count) return false;
+    var _facing = __customer_get_seat_facing(_tbl, target_seat);
+    return __customer_route_to(sit_x, sit_y, true, _facing);
+}
+
+function __customer_build_exit_path()
+{
+    // If the visual seat overlaps a chair hitbox, return to the
+    // walkable spot reached just before sitting, then path out.
+    if (state == "leaving" && variable_instance_exists(id,"seat_approach_x"))
+    {
+        if (!__customer_can_stand_at(x, y)
+            && __customer_can_stand_at(seat_approach_x, seat_approach_y))
+        {
+            x = seat_approach_x;
+            y = seat_approach_y;
+        }
+    }
+    return __customer_route_to(spawn_x, spawn_y, false, "");
+}
+
+// ====================================================
+// MOVE TO NEXT PATH NODE. Subpixel movement, no rounding.
+// ====================================================
+function __customer_move_to(_tx, _ty, _spd)
+{
+    var _dx = _tx - x;
+    var _dy = _ty - y;
+    var _d = point_distance(x, y, _tx, _ty);
+    if (_d <= 0.5) return true;
+
+    var _step = min(_spd, _d);
+    var _nx = _dx / _d * _step;
+    var _ny = _dy / _d * _step;
+
+    if (__customer_can_stand_at(x + _nx, y + _ny))
+    {
+        x += _nx;
+        y += _ny;
+    }
+    else
+    {
+        if (__customer_can_stand_at(x + _nx, y)) x += _nx;
+        if (__customer_can_stand_at(x, y + _ny)) y += _ny;
+    }
+    return point_distance(x, y, _tx, _ty) <= 0.6;
+}
+
+function __customer_follow_path(_spd)
+{
+    if (array_length(route_points) == 0) return false;
+    if (route_index >= array_length(route_points)) return true;
+    var _pt = route_points[route_index];
+    if (__customer_move_to(_pt.x, _pt.y, _spd))
+    {
+        route_index++;
+    }
+    return route_index >= array_length(route_points);
+}
+
 function __customer_check_stuck()
 {
     var _moved = point_distance(x, y, last_x, last_y);
-
-    if (_moved < 0.05)
-        stuck_timer += 1;
-    else
-        stuck_timer = 0;
-
+    if (_moved < 0.05) stuck_timer++;
+    else stuck_timer = 0;
     last_x = x;
     last_y = y;
 
     if (stuck_timer > room_speed)
     {
         stuck_timer = 0;
-
-        var _detoured = __customer_try_detour();
-
-        if (!_detoured)
-        {
-            // If the authored waypoint cannot be reached, retry
-            // with the opposite aisle around the destination table.
-            route_side_flip = !route_side_flip;
-            __customer_clear_path();
-        }
-
-        if (global.ok_debug)
-        {
-            show_debug_message(
-                _detoured
-                ? "[Customer] Blocked: routing around obstacle."
-                : "[Customer] Detour unavailable: retrying table side."
-            );
-        }
+        __customer_clear_path();
+        // Next Step will recalculate with the current furniture layout.
     }
 }
 
+// ====================================================
+// ORIGINAL STATE MACHINE — FOOD, MONEY AND TIMERS PRESERVED
+// ====================================================
 // ----------------------------------------------------
 // Walking to queue
 // ----------------------------------------------------
@@ -631,8 +303,12 @@ if (state == "walking_to_queue")
 
     if (_arrived_queue)
     {
-        x = queue_x;
-        y = queue_y;
+        // Path has reached the queue; don't snap through furniture.
+        if (__customer_can_stand_at(queue_x, queue_y))
+        {
+            x = queue_x;
+            y = queue_y;
+        }
 
         state = "queued";
 

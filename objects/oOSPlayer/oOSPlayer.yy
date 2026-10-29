@@ -32,8 +32,8 @@
   "resourceVersion":"2.0",
   "solid":false,
   "spriteId":{
-    "name":"spriteMainOrcWalk",
-    "path":"sprites/spriteMainOrcWalk/spriteMainOrcWalk.yy",
+    "name":"spriteChefRunDownwards",
+    "path":"sprites/spriteChefRunDownwards/spriteChefRunDownwards.yy",
   },
   "spriteMaskId":null,
   "visible":true,
