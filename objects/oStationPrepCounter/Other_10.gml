@@ -60,15 +60,15 @@ function __refresh_assignment()
     }
 }
 
-function __try_assemble()
+function __try_assemble(_ticket_controller)
 {
     if (!has_plate || !has_component || finished) return;
-    if (assigned_ticket_id == -1 || !instance_exists(_controller)) return;
+    if (assigned_ticket_id == -1 || !instance_exists(_ticket_controller)) return;
 
     var _match = undefined;
-    for (var _i=0;_i<array_length(_controller.tickets);_i++)
+    for (var _i=0;_i<array_length(_ticket_controller.tickets);_i++)
     {
-        var _t = _controller.tickets[_i];
+        var _t = _ticket_controller.tickets[_i];
         if (_t.ticket_id == assigned_ticket_id && _t.status == "waiting")
         {
             _match = _t;
@@ -109,8 +109,8 @@ function __try_assemble()
     // Stamp current ticket PREPARED, let the others slide forward.
     _match.status = "prepared";
     _match.exit_timer = 0;
-    if (_controller.selected_id == assigned_ticket_id)
-        _controller.selected_id = -1; // Step selects first remaining pending ticket.
+    if (_ticket_controller.selected_id == assigned_ticket_id)
+        _ticket_controller.selected_id = -1; // Step selects first remaining pending ticket.
     assigned_ticket_id = -1;
     assigned_recipe = "";
 }
@@ -196,7 +196,7 @@ if (!has_plate && _p.held_kind == "plate_clean")
     plate_name = _p.held_name;
     plate_data = _p.held_data;
     __clear_player_hand(_p);
-    __try_assemble();
+    __try_assemble(_controller);
     exit;
 }
 
@@ -218,6 +218,6 @@ if (!has_component && _valid_food)
     component_data = _p.held_data;
     component_bob = random(1000);
     __clear_player_hand(_p);
-    __try_assemble();
+    __try_assemble(_controller);
     exit;
 }
