@@ -3,6 +3,15 @@
 
 global.frame += 1;
 
+// Supply menus run while the shift continues. Preserve the flag
+// for the current frame so ESC closing a menu cannot also pause.
+var _supply_menu_now = instance_exists(oSupplyMenuController);
+var _supply_menu_before = variable_global_exists("supply_menu_open")
+    && global.supply_menu_open;
+var _supply_menu_block = _supply_menu_now || _supply_menu_before;
+global.supply_menu_open = _supply_menu_now;
+
+
 // ====================================================
 // FULLSCREEN — EVERY ROOM
 // ====================================================
@@ -31,6 +40,7 @@ if (_fullscreen_pressed)
 // not run kitchen pause, recipe or shift systems in FishBattle.
 if (room == FishBattle)
 {
+    if (variable_global_exists("pause_menu_open")) global.pause_menu_open = false;
     global.player_can_move = false;
     global.player_can_interact = false;
     global.paused = false;
@@ -45,6 +55,7 @@ if (room == FishBattle)
 // ====================================================
 if (room == MainMenuRoom)
 {
+    if (variable_global_exists("pause_menu_open")) global.pause_menu_open = false;
     global.game_state = "main_menu";
     global.paused = false;
     global.recipe_menu_open = false;
@@ -56,58 +67,175 @@ if (room == MainMenuRoom)
 }
 
 // ====================================================
-// RECIPE MENU
+// PAUSE MENU + RECIPE BOOK INPUT
 // ====================================================
+// Separate flags: global.paused freezes simulation (also cookbook),
+// global.pause_menu_open displays the four-choice pause menu.
+// The supply picker consumes Escape while it is visible.
+
+if (!variable_global_exists("pause_menu_open")) global.pause_menu_open = false;
+if (!variable_global_exists("pause_menu_index")) global.pause_menu_index = 0;
+if (!variable_global_exists("pause_anim_frozen")) global.pause_anim_frozen = false;
+
 var _gp = 0;
-var _recipe_pressed = keyboard_check_pressed(ord("R"));
+var _pause_pressed = keyboard_check_pressed(vk_escape)
+    || keyboard_check_pressed(ord("P"));
+var _book_pressed = keyboard_check_pressed(ord("R"));
+var _confirm_pressed = keyboard_check_pressed(vk_enter)
+    || keyboard_check_pressed(vk_space)
+    || keyboard_check_pressed(ord("E"));
+var _back_pressed = keyboard_check_pressed(vk_backspace);
+var _up_pressed = keyboard_check_pressed(vk_up)
+    || keyboard_check_pressed(ord("W"));
+var _down_pressed = keyboard_check_pressed(vk_down)
+    || keyboard_check_pressed(ord("S"));
 
 if (gamepad_is_connected(_gp))
 {
-    if (gamepad_button_check_pressed(_gp, gp_select))
-        _recipe_pressed = true;
+    _pause_pressed = _pause_pressed || gamepad_button_check_pressed(_gp, gp_start);
+    _book_pressed = _book_pressed || gamepad_button_check_pressed(_gp, gp_select);
+    _confirm_pressed = _confirm_pressed || gamepad_button_check_pressed(_gp, gp_face1);
+    _back_pressed = _back_pressed || gamepad_button_check_pressed(_gp, gp_face2);
+    _up_pressed = _up_pressed || gamepad_button_check_pressed(_gp, gp_padu);
+    _down_pressed = _down_pressed || gamepad_button_check_pressed(_gp, gp_padd);
 }
 
-if (_recipe_pressed)
+// oInput already generates single-press events for controller sticks.
+if (variable_global_exists("input_up_pressed"))
+    _up_pressed = _up_pressed || global.input_up_pressed;
+if (variable_global_exists("input_down_pressed"))
+    _down_pressed = _down_pressed || global.input_down_pressed;
+if (variable_global_exists("input_confirm_pressed"))
+    _confirm_pressed = _confirm_pressed || global.input_confirm_pressed;
+if (variable_global_exists("input_back_pressed"))
+    _back_pressed = _back_pressed || global.input_back_pressed;
+
+// When a picker is active, do not allow pause/cookbook/menu input.
+if (_supply_menu_block)
 {
-    global.recipe_menu_open = !global.recipe_menu_open;
-    global.recipe_menu_was_open = global.recipe_menu_open;
-    global.paused = global.recipe_menu_open;
-    global.player_can_move = !global.recipe_menu_open;
-    global.player_can_interact = !global.recipe_menu_open;
+    _pause_pressed = false;
+    _book_pressed = false;
+    _confirm_pressed = false;
+    _back_pressed = false;
 }
 
-if (global.recipe_menu_open)
+// ================================================
+// PAUSE MENU NAVIGATION / ACTIONS
+// ================================================
+if (global.pause_menu_open)
 {
     global.paused = true;
-    global.player_can_move = false;
-    global.player_can_interact = false;
-    exit;
+
+    if (_pause_pressed || _back_pressed)
+    {
+        global.pause_menu_open = false;
+        global.paused = false;
+    }
+    else
+    {
+        // Items are 0 Resume, 1 Settings (disabled),
+        // 2 Quit to Menu, 3 Quit to Desktop.
+        if (_up_pressed && !_down_pressed)
+        {
+            global.pause_menu_index = (global.pause_menu_index + 3) mod 4;
+            if (global.pause_menu_index == 1) global.pause_menu_index = 0;
+        }
+        if (_down_pressed && !_up_pressed)
+        {
+            global.pause_menu_index = (global.pause_menu_index + 1) mod 4;
+            if (global.pause_menu_index == 1) global.pause_menu_index = 2;
+        }
+
+        if (_confirm_pressed)
+        {
+            switch (global.pause_menu_index)
+            {
+                case 0:
+                    global.pause_menu_open = false;
+                    global.paused = false;
+                    break;
+
+                case 2:
+                    // No save system yet: restart resets the session
+                    // and returns to the first room (MainMenuRoom).
+                    game_restart();
+                    exit;
+
+                case 3:
+                    game_end();
+                    exit;
+            }
+        }
+    }
 }
-
-// ====================================================
-// PAUSE
-// ====================================================
-var _pause_pressed = keyboard_check_pressed(vk_escape)
-    || keyboard_check_pressed(ord("P"));
-
-if (gamepad_is_connected(0))
+else if (global.recipe_menu_open)
 {
-    if (gamepad_button_check_pressed(0, gp_start))
-        _pause_pressed = true;
+    // Cookbook pauses the kitchen, but has its own overlay.
+    global.paused = true;
+    if (_book_pressed)
+    {
+        global.recipe_menu_open = false;
+        global.recipe_menu_was_open = false;
+        global.paused = false;
+    }
+}
+else if (!_supply_menu_block)
+{
+    if (_pause_pressed)
+    {
+        global.pause_menu_open = true;
+        global.pause_menu_index = 0;
+        global.paused = true;
+    }
+    else if (_book_pressed)
+    {
+        global.recipe_menu_open = true;
+        global.recipe_menu_was_open = true;
+        global.paused = true;
+    }
 }
 
-if (_pause_pressed)
-    global.paused = !global.paused;
+// ================================================
+// FREEZE / RESTORE SPRITE ANIMATION
+// ================================================
+// GameMaker advances image_index independently of Step.
+// Save each sprite playback speed once, then restore it.
+// Applies in MessHall and other gameplay rooms.
+if (global.paused && !global.pause_anim_frozen)
+{
+    with (all)
+    {
+        if (id != other.id)
+        {
+            __orc_pause_saved_image_speed = image_speed;
+            image_speed = 0;
+        }
+    }
+    global.pause_anim_frozen = true;
+}
+else if (!global.paused && global.pause_anim_frozen)
+{
+    with (all)
+    {
+        if (variable_instance_exists(id, "__orc_pause_saved_image_speed"))
+        {
+            image_speed = __orc_pause_saved_image_speed;
+            // Keep saved variable; overwritten safely on next pause.
+        }
+    }
+    global.pause_anim_frozen = false;
+}
 
 if (global.paused)
 {
     global.player_can_move = false;
     global.player_can_interact = false;
+    global.show_station_labels = false;
     exit;
 }
 
-global.player_can_move = true;
-global.player_can_interact = true;
+global.player_can_move = !_supply_menu_now;
+global.player_can_interact = !_supply_menu_now;
 global.show_station_labels = keyboard_check(vk_tab);
 
 // ====================================================

@@ -1,260 +1,223 @@
-/// oStationPrepCounter — User Event 0
-// Called by oPlayer interaction
-
+/// oStationPrepCounter — User Event 0 (FULL EVENT)
+/// Ticket-directed instant poof: plate + correct cooked ingredient.
+/// Ticket is locked once an ingredient is placed.
 var _p = interactor;
 if (_p == noone || !instance_exists(_p)) exit;
 
+var _controller = noone;
+if (instance_exists(oOrderTicketController))
+    _controller = instance_find(oOrderTicketController,0);
+
+// An active ticket is required to BEGIN preparation.
+var _active_ticket = -1;
+var _active_recipe = "";
+if (instance_exists(_controller))
+{
+    _active_ticket = _controller.selected_id;
+    for (var _a=0;_a<array_length(_controller.tickets);_a++)
+    {
+        var _candidate = _controller.tickets[_a];
+        if (_candidate.ticket_id == _active_ticket && _candidate.status == "waiting")
+        {
+            _active_recipe = _candidate.recipe;
+            break;
+        }
+    }
+}
+
+function __clear_player_hand(_chef)
+{
+    _chef.held_kind = "";
+    _chef.held_sprite = -1;
+    _chef.held_image = 0;
+    _chef.held_name = "";
+    _chef.held_is_food = false;
+    _chef.held_is_dirty = false;
+    _chef.held_is_tool = false;
+    _chef.held_data = undefined;
+    _chef.is_carrying = false;
+}
+
+function __give_to_player(_chef,_kind,_sp,_name,_data,_food)
+{
+    _chef.held_kind = _kind;
+    _chef.held_sprite = _sp;
+    _chef.held_image = 0;
+    _chef.held_name = _name;
+    _chef.held_is_food = _food;
+    _chef.held_is_dirty = false;
+    _chef.held_is_tool = false;
+    _chef.held_data = _data;
+    _chef.is_carrying = true;
+}
+
+function __refresh_assignment()
+{
+    if (!has_plate && !has_component)
+    {
+        assigned_ticket_id = -1;
+        assigned_recipe = "";
+    }
+}
+
+function __try_assemble()
+{
+    if (!has_plate || !has_component || finished) return;
+    if (assigned_ticket_id == -1 || !instance_exists(_controller)) return;
+
+    var _match = undefined;
+    for (var _i=0;_i<array_length(_controller.tickets);_i++)
+    {
+        var _t = _controller.tickets[_i];
+        if (_t.ticket_id == assigned_ticket_id && _t.status == "waiting")
+        {
+            _match = _t;
+            break;
+        }
+    }
+    if (is_undefined(_match)) return;
+
+    var _is_rat = component_kind == "food_rat_cooked" || component_kind == "food_rat_burnt";
+    var _is_bat = component_kind == "food_bat_wings_cooked" || component_kind == "food_bat_wings_burnt";
+    var _recipe = _is_rat ? "skewered_rat" : (_is_bat ? "bat_wings" : "");
+    if (_recipe == "" || _recipe != _match.recipe) return;
+    if (_match.topping != "") return; // Future relish requirement.
+
+    var _burnt = string_pos("_burnt",component_kind)>0;
+    var _normal_kind = _is_bat ? "meal_bat_wings" : "meal_skewered_rat";
+    var _name = _is_bat ? "Charred Cave-Bat Wings" : "Skewered Rat";
+    var _normal_sprite = _is_bat ? spriteFoodFinalBatWings : spriteFoodFinalSkeweredRat;
+    var _burnt_sprite = _is_bat ? spriteFoodFinalBatWingsBurnt : spriteFoodFinalSkeweredRatBurnt;
+
+    finished = true;
+    finished_kind = _normal_kind + (_burnt ? "_burnt" : "");
+    finished_sprite = _burnt ? _burnt_sprite : _normal_sprite;
+    finished_name = (_burnt ? "Burnt " : "") + _name;
+    finished_data = {
+        recipe:_recipe,
+        container:"plate_regular",
+        cook_state:_burnt ? "burnt" : "cooked",
+        topping:"",
+        quality:_burnt ? 0.35 : 1.0,
+        sprite:finished_sprite,
+        source_ticket_id:assigned_ticket_id
+    };
+    if (object_exists(oFXSmokePop))
+        instance_create_depth(x,y-36,depth-10,oFXSmokePop);
+    finish_lock_timer = 8;
+
+    // Stamp current ticket PREPARED, let the others slide forward.
+    _match.status = "prepared";
+    _match.exit_timer = 0;
+    if (_controller.selected_id == assigned_ticket_id)
+        _controller.selected_id = -1; // Step selects first remaining pending ticket.
+    assigned_ticket_id = -1;
+    assigned_recipe = "";
+}
+
 // ----------------------------------------------------
-// If finished food is ready, player can pick it up
+// Take finished dish.
 // ----------------------------------------------------
 if (finished)
 {
     if (finish_lock_timer <= 0 && _p.held_kind == "")
     {
-        _p.held_kind     = finished_kind;
-        _p.held_sprite   = finished_sprite;
-        _p.held_image    = 0;
-        _p.held_name     = finished_name;
-        _p.held_is_food  = true;
-        _p.held_is_dirty = false;
-        _p.held_is_tool  = false;
-        _p.held_data     = finished_data;
-        _p.is_carrying   = true;
-
-        // Clear counter
+        __give_to_player(_p,finished_kind,finished_sprite,finished_name,finished_data,true);
         has_plate = false;
         plate_kind = "";
         plate_sprite = -1;
         plate_name = "";
         plate_data = undefined;
-
         has_component = false;
         component_kind = "";
         component_sprite = -1;
         component_name = "";
         component_data = undefined;
-
         finished = false;
         finished_kind = "";
         finished_sprite = -1;
         finished_name = "";
         finished_data = undefined;
     }
-
     exit;
 }
 
 // ----------------------------------------------------
-// If player is empty-handed and counter only has loose cooked meat,
-// allow them to pick it back up.
-// This prevents moving the softlock onto the prep counter.
+// Empty-handed: always permit removal so nothing softlocks.
+// If both plate and meat present, remove meat first.
 // ----------------------------------------------------
-if (!has_plate && has_component && _p.held_kind == "")
+if (_p.held_kind == "")
 {
-    _p.held_kind     = component_kind;
-    _p.held_sprite   = component_sprite;
-    _p.held_image    = 0;
-    _p.held_name     = component_name;
-    _p.held_is_food  = true;
-    _p.held_is_dirty = false;
-    _p.held_is_tool  = false;
-    _p.held_data     = component_data;
-    _p.is_carrying   = true;
-
-    has_component = false;
-    component_kind = "";
-    component_sprite = -1;
-    component_name = "";
-    component_data = undefined;
-
-    exit;
-}
-
-// ----------------------------------------------------
-// Remove plain plate from prep counter.
-// Only allowed if there is no component yet.
-// ----------------------------------------------------
-if (has_plate && !has_component && _p.held_kind == "")
-{
-    _p.held_kind     = plate_kind;
-    _p.held_sprite   = plate_sprite;
-    _p.held_image    = 0;
-    _p.held_name     = plate_name;
-    _p.held_is_food  = false;
-    _p.held_is_dirty = false;
-    _p.held_is_tool  = false;
-    _p.held_data     = plate_data;
-    _p.is_carrying   = true;
-
-    has_plate = false;
-    plate_kind = "";
-    plate_sprite = -1;
-    plate_name = "";
-    plate_data = undefined;
-
-    exit;
-}
-
-// ----------------------------------------------------
-// Place clean plate on counter.
-// Works whether or not a cooked component is already there.
-// ----------------------------------------------------
-if (!has_plate && _p.held_kind == "plate_clean")
-{
-    has_plate = true;
-
-    plate_kind   = _p.held_kind;
-    plate_sprite = _p.held_sprite;
-    plate_name   = _p.held_name;
-    plate_data   = _p.held_data;
-
-    _p.held_kind     = "";
-    _p.held_sprite   = -1;
-    _p.held_image    = 0;
-    _p.held_name     = "";
-    _p.held_is_food  = false;
-    _p.held_is_dirty = false;
-    _p.held_is_tool  = false;
-    _p.held_data     = undefined;
-    _p.is_carrying   = false;
-
-    // ------------------------------------------------
-    // Recipe check after placing plate.
-    // This catches: cooked/burnt rat first, plate second.
-    // ------------------------------------------------
     if (has_component)
     {
-        if (component_kind == "food_rat_cooked")
-        {
-            if (object_exists(oFXSmokePop))
-            {
-                instance_create_depth(x, y - 36, depth - 10, oFXSmokePop);
-            }
-
-            finished = true;
-            finished_kind = "meal_skewered_rat";
-            finished_sprite = spriteFoodFinalSkeweredRat;
-            finished_name = "Skewered Rat";
-
-            finished_data = {
-                recipe: "skewered_rat",
-                container: "plate_regular",
-                cook_state: "cooked",
-                topping: "",
-                quality: 1.0,
-                sprite: spriteFoodFinalSkeweredRat
-            };
-
-            finish_lock_timer = 8;
-        }
-        else if (component_kind == "food_rat_burnt")
-        {
-            if (object_exists(oFXSmokePop))
-            {
-                instance_create_depth(x, y - 36, depth - 10, oFXSmokePop);
-            }
-
-            finished = true;
-            finished_kind = "meal_skewered_rat_burnt";
-            finished_sprite = spriteFoodFinalSkeweredRatBurnt;
-            finished_name = "Burnt Skewered Rat";
-
-            finished_data = {
-                recipe: "skewered_rat",
-                container: "plate_regular",
-                cook_state: "burnt",
-                topping: "",
-                quality: 0.35,
-                sprite: spriteFoodFinalSkeweredRatBurnt
-            };
-
-            finish_lock_timer = 8;
-        }
+        __give_to_player(_p,component_kind,component_sprite,component_name,component_data,true);
+        has_component = false;
+        component_kind = "";
+        component_sprite = -1;
+        component_name = "";
+        component_data = undefined;
+        __refresh_assignment();
+        exit;
     }
-
+    if (has_plate)
+    {
+        __give_to_player(_p,plate_kind,plate_sprite,plate_name,plate_data,false);
+        has_plate = false;
+        plate_kind = "";
+        plate_sprite = -1;
+        plate_name = "";
+        plate_data = undefined;
+        __refresh_assignment();
+        exit;
+    }
     exit;
 }
 
 // ----------------------------------------------------
-// Place cooked or burnt rat on counter.
-// Works whether or not a plate is already there.
+// First component binds the counter to the selected ticket.
+// Afterwards the assignment is NOT changed by ticket navigation.
 // ----------------------------------------------------
-if (!has_component)
+if (assigned_ticket_id == -1)
 {
-    if (_p.held_kind == "food_rat_cooked" || _p.held_kind == "food_rat_burnt")
+    if (_active_ticket == -1 || _active_recipe == "") exit;
+    if (has_plate || has_component) exit; // Cannot hijack abandoned partial prep.
+}
+
+if (!has_plate && _p.held_kind == "plate_clean")
+{
+    if (assigned_ticket_id == -1)
     {
-        has_component = true;
-
-        component_kind   = _p.held_kind;
-        component_sprite = _p.held_sprite;
-        component_name   = _p.held_name;
-        component_data   = _p.held_data;
-        component_bob    = random(1000);
-
-        _p.held_kind     = "";
-        _p.held_sprite   = -1;
-        _p.held_image    = 0;
-        _p.held_name     = "";
-        _p.held_is_food  = false;
-        _p.held_is_dirty = false;
-        _p.held_is_tool  = false;
-        _p.held_data     = undefined;
-        _p.is_carrying   = false;
-
-        // ------------------------------------------------
-        // Recipe check after placing component.
-        // This catches: plate first, cooked/burnt rat second.
-        // ------------------------------------------------
-        if (has_plate)
-        {
-            if (component_kind == "food_rat_cooked")
-            {
-                if (object_exists(oFXSmokePop))
-                {
-                    instance_create_depth(x, y - 36, depth - 10, oFXSmokePop);
-                }
-
-                finished = true;
-                finished_kind = "meal_skewered_rat";
-                finished_sprite = spriteFoodFinalSkeweredRat;
-                finished_name = "Skewered Rat";
-
-                finished_data = {
-                    recipe: "skewered_rat",
-                    container: "plate_regular",
-                    cook_state: "cooked",
-                    topping: "",
-                    quality: 1.0,
-                    sprite: spriteFoodFinalSkeweredRat
-                };
-
-                finish_lock_timer = 8;
-            }
-            else if (component_kind == "food_rat_burnt")
-            {
-                if (object_exists(oFXSmokePop))
-                {
-                    instance_create_depth(x, y - 36, depth - 10, oFXSmokePop);
-                }
-
-                finished = true;
-                finished_kind = "meal_skewered_rat_burnt";
-                finished_sprite = spriteFoodFinalSkeweredRatBurnt;
-                finished_name = "Burnt Skewered Rat";
-
-                finished_data = {
-                    recipe: "skewered_rat",
-                    container: "plate_regular",
-                    cook_state: "burnt",
-                    topping: "",
-                    quality: 0.35,
-                    sprite: spriteFoodFinalSkeweredRatBurnt
-                };
-
-                finish_lock_timer = 8;
-            }
-        }
-
-        exit;
+        assigned_ticket_id = _active_ticket;
+        assigned_recipe = _active_recipe;
     }
+    has_plate = true;
+    plate_kind = _p.held_kind;
+    plate_sprite = _p.held_sprite;
+    plate_name = _p.held_name;
+    plate_data = _p.held_data;
+    __clear_player_hand(_p);
+    __try_assemble();
+    exit;
+}
+
+var _valid_food = _p.held_kind == "food_rat_cooked"
+    || _p.held_kind == "food_rat_burnt"
+    || _p.held_kind == "food_bat_wings_cooked"
+    || _p.held_kind == "food_bat_wings_burnt";
+if (!has_component && _valid_food)
+{
+    if (assigned_ticket_id == -1)
+    {
+        assigned_ticket_id = _active_ticket;
+        assigned_recipe = _active_recipe;
+    }
+    has_component = true;
+    component_kind = _p.held_kind;
+    component_sprite = _p.held_sprite;
+    component_name = _p.held_name;
+    component_data = _p.held_data;
+    component_bob = random(1000);
+    __clear_player_hand(_p);
+    __try_assemble();
+    exit;
 }

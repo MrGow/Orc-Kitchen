@@ -485,12 +485,16 @@ if (state == "served")
     {
         reaction_text = "GOOD!";
         satisfaction = 100;
+        // Use the value for whichever dish was ordered.
+        // Current values: Rat = 8 gold; Bat Wings = 10 gold.
         pay_amount = 8;
+        if (order_recipe == "bat_wings") pay_amount = 10;
     }
     else if (_burnt_wrong)
     {
         reaction_text = "BURNT!";
         satisfaction = 35;
+        // Preserve the existing burnt penalty for both recipes.
         pay_amount = 3;
         global.customers_failed += 1;
     }

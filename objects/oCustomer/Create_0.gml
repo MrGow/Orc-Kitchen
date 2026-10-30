@@ -1,4 +1,6 @@
 /// oCustomer — Create (FULL REPLACEMENT)
+/// New customers independently roll 50/50 between
+/// Skewered Rat and Charred Cave-Bat Wings.
 
 sprite_index = spriteChefRunDownwards;
 image_speed = 0.12;
@@ -35,11 +37,26 @@ stuck_timer = 0;
 last_x = x;
 last_y = y;
 
-order_kind = "meal_skewered_rat";
-order_recipe = "skewered_rat";
-order_cook_state = "cooked";
-order_name = "Skewered Rat";
-order_sprite = spriteFoodFinalSkeweredRat;
+// ----------------------------------------------------
+// ORDER: one independent 50/50 roll per customer.
+// Both recipes are temporarily unlocked for testing.
+// ----------------------------------------------------
+if (irandom(1) == 0)
+{
+    order_kind = "meal_skewered_rat";
+    order_recipe = "skewered_rat";
+    order_cook_state = "cooked";
+    order_name = "Skewered Rat";
+    order_sprite = spriteFoodFinalSkeweredRat;
+}
+else
+{
+    order_kind = "meal_bat_wings";
+    order_recipe = "bat_wings";
+    order_cook_state = "cooked";
+    order_name = "Charred Cave-Bat Wings";
+    order_sprite = spriteFoodFinalBatWings;
+}
 
 served_kind = "";
 served_name = "";

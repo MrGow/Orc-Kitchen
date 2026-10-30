@@ -40,8 +40,8 @@ var _font_title   = MedievalSharpRegular32;
 var _font_heading = MedievalSharpRegular20;
 var _font_body    = AlmendraRegular16;
 var _font_bold    = AlmendraBold16;
-var _font_hud     = PixelifyBold14;
-var _font_small   = PixelifyRegular12;
+var _font_hud     = Silkscreen12;
+var _font_small   = Silkscreen10;
 
 
 // ====================================================
@@ -197,6 +197,22 @@ draw_set_valign(fa_top);
 
 
 // ====================================================
+// CRISP DARK SHADOW FOR TEXT ON WOODEN HUD PANELS
+// ====================================================
+// Reads the current font, colour and alignment.
+// Draws one dark pixel of separation, then the original.
+// Parchment pages retain their normal unshadowed ink.
+var _hud_text = function(_x, _y, _str)
+{
+    var _col = draw_get_color();
+    draw_set_color(make_color_rgb(19, 12, 12));
+    draw_text(_x + 1, _y + 1, _str);
+    draw_set_color(_col);
+    draw_text(_x, _y, _str);
+};
+
+
+// ====================================================
 // DAY PHASE LABEL
 // ====================================================
 
@@ -263,7 +279,7 @@ if (room_get_name(room) != "MainMenuRoom")
     draw_set_font(_font_hud);
     draw_set_color(_gold);
 
-    draw_text(
+    _hud_text(
         _lx + 10 * _sx,
         _ly + 7 * _sy,
         "DAY " + string(global.day)
@@ -271,7 +287,7 @@ if (room_get_name(room) != "MainMenuRoom")
 
     draw_set_color(_parchment);
 
-    draw_text(
+    _hud_text(
         _lx + 10 * _sx,
         _ly + 26 * _sy,
         string(global.gold) + " GOLD"
@@ -280,7 +296,7 @@ if (room_get_name(room) != "MainMenuRoom")
     draw_set_font(_font_small);
     draw_set_color(_muted);
 
-    draw_text(
+    _hud_text(
         _lx + 10 * _sx,
         _ly + 47 * _sy,
         _phase_label
@@ -357,7 +373,7 @@ if (room_get_name(room) != "MainMenuRoom")
         draw_set_font(_font_small);
         draw_set_color(_muted);
 
-        draw_text(
+        _hud_text(
             _cx,
             _ty + 6 * _sy,
             _timer_title
@@ -366,7 +382,7 @@ if (room_get_name(room) != "MainMenuRoom")
         draw_set_font(_font_heading);
         draw_set_color(_gold);
 
-        draw_text(
+        _hud_text(
             _cx,
             _ty + 23 * _sy,
             _timer_value
@@ -401,7 +417,7 @@ if (room_get_name(room) != "MainMenuRoom")
         draw_set_font(_font_small);
         draw_set_color(_muted);
 
-        draw_text(
+        _hud_text(
             _rx + 10 * _sx,
             _ry + 7 * _sy,
             "CUSTOMERS SERVED"
@@ -410,7 +426,7 @@ if (room_get_name(room) != "MainMenuRoom")
         draw_set_font(_font_hud);
         draw_set_color(_parchment);
 
-        draw_text(
+        _hud_text(
             _rx + 10 * _sx,
             _ry + 22 * _sy,
             string(global.customers_served)
@@ -420,7 +436,7 @@ if (room_get_name(room) != "MainMenuRoom")
 
         draw_set_color(_gold);
 
-        draw_text(
+        _hud_text(
             _rx + 78 * _sx,
             _ry + 22 * _sy,
             "+" + string(global.shift_revenue) + " G"
@@ -469,7 +485,7 @@ if (
     draw_set_halign(fa_center);
     draw_set_valign(fa_middle);
 
-    draw_text(
+    _hud_text(
         _cx,
         _by + _bh * 0.5,
         global.shift_banner_text
@@ -479,6 +495,74 @@ if (
     draw_set_valign(fa_top);
 }
 
+
+// ====================================================
+// PAUSE MENU OVERLAY
+// ====================================================
+if (variable_global_exists("pause_menu_open") && global.pause_menu_open)
+{
+    draw_set_alpha(0.78);
+    draw_set_color(c_black);
+    draw_rectangle(0, 0, _gw, _gh, false);
+    draw_set_alpha(1);
+
+    var _pw = 302 * _sx;
+    var _ph = 296 * _sy;
+    var _px = _cx - _pw * 0.5;
+    var _py = (_gh - _ph) * 0.5;
+
+    _panel(_px, _py, _px + _pw, _py + _ph);
+
+    draw_set_halign(fa_center);
+    draw_set_valign(fa_middle);
+    draw_set_font(_font_title);
+    draw_set_color(_gold);
+    _hud_text(_cx, _py + 41 * _sy, "PAUSED");
+
+    draw_set_color(make_color_rgb(117, 91, 65));
+    draw_line(_px + 30 * _sx, _py + 69 * _sy,
+              _px + _pw - 30 * _sx, _py + 69 * _sy);
+
+    var _labels = ["RESUME", "SETTINGS", "QUIT TO MENU", "QUIT TO DESKTOP"];
+    var _row_h = 45 * _sy;
+    var _row_y = _py + 93 * _sy;
+    var _sel = global.pause_menu_index;
+
+    draw_set_font(_font_hud);
+    for (var _i = 0; _i < 4; _i++)
+    {
+        var _yy = _row_y + _i * _row_h;
+        var _disabled = (_i == 1);
+        var _selected = (_sel == _i && !_disabled);
+
+        if (_selected)
+        {
+            draw_set_color(make_color_rgb(89, 65, 40));
+            draw_rectangle(_px + 21 * _sx, _yy - 16 * _sy,
+                           _px + _pw - 21 * _sx, _yy + 17 * _sy, false);
+            draw_set_color(_gold);
+            draw_rectangle(_px + 21 * _sx, _yy - 16 * _sy,
+                           _px + _pw - 21 * _sx, _yy + 17 * _sy, true);
+            _hud_text(_px + 35 * _sx, _yy, ">");
+        }
+
+        if (_disabled) draw_set_color(make_color_rgb(103, 94, 88));
+        else if (_selected) draw_set_color(_gold);
+        else draw_set_color(_parchment);
+
+        _hud_text(_cx, _yy, _labels[_i]);
+    }
+
+    draw_set_font(_font_small);
+    draw_set_color(_muted);
+    _hud_text(_cx, _py + _ph - 17 * _sy, "ESC: BACK    E / A: SELECT");
+
+    draw_set_halign(fa_left);
+    draw_set_valign(fa_top);
+    draw_set_color(c_white);
+    draw_set_alpha(1);
+    exit;
+}
 
 // ====================================================
 // SHIFT SUMMARY OVERLAY
@@ -799,66 +883,6 @@ if (global.recipe_menu_open)
         _cx,
         _py + _ph - 24 * _sy,
         "PRESS R / XBOX SELECT TO CLOSE"
-    );
-
-    draw_set_halign(fa_left);
-    draw_set_valign(fa_top);
-    draw_set_alpha(1);
-    draw_set_color(c_white);
-
-    exit;
-}
-
-
-// ====================================================
-// PAUSE OVERLAY
-// ====================================================
-
-if (global.paused)
-{
-    draw_set_alpha(0.72);
-    draw_set_color(c_black);
-
-    draw_rectangle(
-        0, 0,
-        _gw, _gh,
-        false
-    );
-
-    draw_set_alpha(1);
-
-    var _pw = 260 * _sx;
-    var _ph = 110 * _sy;
-
-    var _px = _cx - _pw * 0.5;
-    var _py = _gh * 0.5 - _ph * 0.5;
-
-    _panel(
-        _px,
-        _py,
-        _px + _pw,
-        _py + _ph
-    );
-
-    draw_set_halign(fa_center);
-    draw_set_valign(fa_middle);
-
-    draw_set_font(_font_title);
-    draw_set_color(_gold);
-
-    draw_text(
-        _cx,
-        _py + 39 * _sy,
-        "PAUSED"
-    );
-
-    draw_set_font(_font_small);
-    draw_set_color(_parchment);
-
-    draw_text(
-        _cx,
-        _py + 81 * _sy,
-        "THE WAR CAN WAIT..."
     );
 
     draw_set_halign(fa_left);

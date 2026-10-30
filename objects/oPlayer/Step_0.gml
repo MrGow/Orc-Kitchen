@@ -1,7 +1,9 @@
-
 /// oPlayer — Step
 /// Fixed collision mask, smooth movement,
 /// directional animations, interactions and depth
+
+// Do not tick movement, interaction, wobble or animation while paused.
+if (global.paused) exit;
 
 // ====================================================
 // COLLISION HELPER
@@ -183,9 +185,9 @@ if (_len > 0)
 // INTERACTION KEY
 // ====================================================
 
-interact_key_pressed =
-    keyboard_check_pressed(ord("E"))
-    || keyboard_check_pressed(vk_space);
+interact_key_pressed = keyboard_check_pressed(vk_space);
+// E navigates tickets only inside MessHall, so retain E elsewhere.
+if (room != MessHall) interact_key_pressed = interact_key_pressed || keyboard_check_pressed(ord("E"));
 
 if (gamepad_is_connected(_gp))
 {
@@ -212,6 +214,7 @@ if (
     !is_busy
     && !is_stunned
     && global.player_can_move
+    && !instance_exists(oSupplyMenuController)
 )
 {
     var _spd = move_spd;
@@ -696,6 +699,7 @@ if (
     interact_key_pressed
     && target_interact != noone
     && global.player_can_interact
+    && !instance_exists(oSupplyMenuController)
 )
 {
     target_interact.interactor = id;
