@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"spriteStationGrill",
   "bboxMode":2,
-  "bbox_bottom":47,
+  "bbox_bottom":56,
   "bbox_left":0,
   "bbox_right":127,
   "bbox_top":0,

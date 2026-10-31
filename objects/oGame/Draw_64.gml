@@ -213,237 +213,135 @@ var _hud_text = function(_x, _y, _str)
 
 
 // ====================================================
-// DAY PHASE LABEL
+// COMPACT CORNER HUD — NO PERMANENT CENTRE BOX
 // ====================================================
-
-var _phase_label = "DAYTIME";
+// The day phase is independent of the room currently visited.
+var _phase_label = "EVENING";
+var _phase_time = "";
+var _timer_frames = 0;
 
 switch (global.day_phase)
 {
     case "pre_shift":
-        _phase_label = "PREPARATION";
+        _phase_label = "PRE-SHIFT";
+        _timer_frames = max(0, global.pre_shift_timer);
         break;
-
     case "serving":
         _phase_label = "SERVING";
+        _timer_frames = max(0, global.shift_timer);
         break;
-
     case "closing":
-        _phase_label = "CLOSING";
+        _phase_label = "LAST CALL";
+        // Closing has a timer, but the small UI does not require it.
         break;
-
-    case "cleanup":
-        _phase_label = "CLEANUP";
-        break;
-
     case "shift_summary":
         _phase_label = "SHIFT ENDED";
         break;
-
-    case "camp_map":
-        _phase_label = "WAR CAMP";
+    case "cleanup":
+        _phase_label = "CLEANUP";
         break;
-
-    case "market":
-        _phase_label = "MARKET";
+    case "evening":
+        _phase_label = "EVENING";
         break;
-
-    case "home":
-        _phase_label = "HOME";
+    default:
+        _phase_label = "DAYTIME";
         break;
 }
 
-
-// ====================================================
-// MAIN GAMEPLAY HUD
-// ====================================================
-
-if (room_get_name(room) != "MainMenuRoom")
+if (global.day_phase == "pre_shift" || global.day_phase == "serving")
 {
-    // ------------------------------------------------
-    // LEFT PANEL — DAY / GOLD / PHASE
-    // ------------------------------------------------
-
-    var _lx = 8 * _sx;
-    var _ly = 8 * _sy;
-    var _lw = 164 * _sx;
-    var _lh = 66 * _sy;
-
-    _panel(
-        _lx,
-        _ly,
-        _lx + _lw,
-        _ly + _lh
-    );
-
-    draw_set_font(_font_hud);
-    draw_set_color(_gold);
-
-    _hud_text(
-        _lx + 10 * _sx,
-        _ly + 7 * _sy,
-        "DAY " + string(global.day)
-    );
-
-    draw_set_color(_parchment);
-
-    _hud_text(
-        _lx + 10 * _sx,
-        _ly + 26 * _sy,
-        string(global.gold) + " GOLD"
-    );
-
-    draw_set_font(_font_small);
-    draw_set_color(_muted);
-
-    _hud_text(
-        _lx + 10 * _sx,
-        _ly + 47 * _sy,
-        _phase_label
-    );
-
-
-    // ------------------------------------------------
-    // CENTRE PANEL — SHIFT TIMER
-    // ------------------------------------------------
-
-    var _show_timer = false;
-    var _timer_title = "";
-    var _timer_value = "";
-
-    if (global.day_phase == "pre_shift")
-    {
-        _show_timer = true;
-        _timer_title = "SHIFT BEGINS";
-
-        var _seconds = max(
-            0,
-            ceil(global.pre_shift_timer / room_speed)
-        );
-
-        _timer_value =
-            string(_seconds div 60)
-            + ":"
-            + string_format(_seconds mod 60, 2, 0);
-    }
-    else if (global.day_phase == "serving")
-    {
-        _show_timer = true;
-        _timer_title = "TIME LEFT";
-
-        var _seconds = max(
-            0,
-            ceil(global.shift_timer / room_speed)
-        );
-
-        _timer_value =
-            string(_seconds div 60)
-            + ":"
-            + string_format(_seconds mod 60, 2, 0);
-    }
-    else if (global.day_phase == "closing")
-    {
-        _show_timer = true;
-        _timer_title = "SHIFT";
-        _timer_value = "CLOSING";
-    }
-    else if (global.day_phase == "cleanup")
-    {
-        _show_timer = true;
-        _timer_title = "SHIFT";
-        _timer_value = "FINISHED";
-    }
-
-    if (_show_timer)
-    {
-        var _tw = 142 * _sx;
-        var _tx = _cx - _tw * 0.5;
-        var _ty = 8 * _sy;
-
-        _panel(
-            _tx,
-            _ty,
-            _tx + _tw,
-            _ty + 53 * _sy
-        );
-
-        draw_set_halign(fa_center);
-        draw_set_valign(fa_top);
-
-        draw_set_font(_font_small);
-        draw_set_color(_muted);
-
-        _hud_text(
-            _cx,
-            _ty + 6 * _sy,
-            _timer_title
-        );
-
-        draw_set_font(_font_heading);
-        draw_set_color(_gold);
-
-        _hud_text(
-            _cx,
-            _ty + 23 * _sy,
-            _timer_value
-        );
-
-        draw_set_halign(fa_left);
-    }
-
-
-    // ------------------------------------------------
-    // RIGHT PANEL — CUSTOMERS / EARNINGS
-    // ------------------------------------------------
-
-    if (
-        global.day_phase == "pre_shift"
-        || global.day_phase == "serving"
-        || global.day_phase == "closing"
-        || global.day_phase == "cleanup"
-    )
-    {
-        var _rw = 164 * _sx;
-        var _rx = _gw - _rw - 8 * _sx;
-        var _ry = 8 * _sy;
-
-        _panel(
-            _rx,
-            _ry,
-            _rx + _rw,
-            _ry + 54 * _sy
-        );
-
-        draw_set_font(_font_small);
-        draw_set_color(_muted);
-
-        _hud_text(
-            _rx + 10 * _sx,
-            _ry + 7 * _sy,
-            "CUSTOMERS SERVED"
-        );
-
-        draw_set_font(_font_hud);
-        draw_set_color(_parchment);
-
-        _hud_text(
-            _rx + 10 * _sx,
-            _ry + 22 * _sy,
-            string(global.customers_served)
-            + "/"
-            + string(global.customers_spawned)
-        );
-
-        draw_set_color(_gold);
-
-        _hud_text(
-            _rx + 78 * _sx,
-            _ry + 22 * _sy,
-            "+" + string(global.shift_revenue) + " G"
-        );
-    }
+    var _seconds_remaining = ceil(_timer_frames / room_speed);
+    _phase_time = " " + string(_seconds_remaining div 60)
+        + ":" + string_format(_seconds_remaining mod 60, 2, 0);
 }
 
+// ----------------------------------------------------
+// TOP LEFT: one compact wooden panel, three lines.
+// ----------------------------------------------------
+var _hud_x = 8 * _sx;
+var _hud_y = 7 * _sy;
+var _hud_w = 164 * _sx;
+var _hud_h = 58 * _sy;
+
+_panel(_hud_x, _hud_y, _hud_x + _hud_w, _hud_y + _hud_h);
+
+draw_set_halign(fa_left);
+draw_set_valign(fa_top);
+draw_set_font(_font_hud);
+draw_set_color(_gold);
+_hud_text(_hud_x + 9 * _sx, _hud_y + 5 * _sy, "DAY " + string(global.day));
+
+draw_set_font(_font_small);
+draw_set_color(_parchment);
+_hud_text(_hud_x + 9 * _sx, _hud_y + 25 * _sy, _phase_label + _phase_time);
+
+draw_set_color(_muted);
+_hud_text(_hud_x + 9 * _sx, _hud_y + 41 * _sy,
+    "SERVED " + string(global.customers_served) + "/" + string(global.customers_spawned));
+
+// ----------------------------------------------------
+// TOP RIGHT: unboxed pile-of-gold icon + total (+/- today).
+// The gold pile is procedural until a proper sprite is supplied.
+// If asset spriteGoldPile is added, it is used automatically.
+// ----------------------------------------------------
+var _baseline = 0;
+if (variable_global_exists("day_start_gold")) _baseline = global.day_start_gold;
+var _gain = global.gold - _baseline;
+var _delta = "(" + ((_gain >= 0) ? "+" : "") + string(_gain) + ")";
+
+var _gold_total_str = string(global.gold);
+var _gold_x_end = _gw - 8 * _sx;
+var _gold_y = 11 * _sy;
+
+draw_set_halign(fa_left);
+draw_set_valign(fa_top);
+draw_set_font(_font_small);
+var _delta_w = string_width(_delta);
+draw_set_font(_font_hud);
+var _total_w = string_width(_gold_total_str);
+
+var _total_x = _gold_x_end - _delta_w - 6 * _sx - _total_w;
+var _delta_x = _gold_x_end - _delta_w;
+var _icon_x = _total_x - 13 * _sx;
+var _icon_y = _gold_y + 6 * _sy;
+
+// Tiny dark shadows for legibility against bright room backgrounds.
+draw_set_color(c_black);
+draw_set_alpha(0.40);
+draw_roundrect(_icon_x - 10 * _sx, _gold_y - 3 * _sy,
+    _gold_x_end + 3 * _sx, _gold_y + 25 * _sy, false);
+draw_set_alpha(1);
+
+var _pile = asset_get_index("spriteGoldPile");
+if (_pile != -1)
+{
+    draw_sprite_ext(_pile, 0, _icon_x, _icon_y, 0.5 * _sx, 0.5 * _sy,
+        0, c_white, 1);
+}
+else
+{
+    // Three small golden coins; temporary asset-free placeholder.
+    draw_set_color(make_color_rgb(125, 77, 25));
+    draw_ellipse(_icon_x - 7 * _sx, _icon_y - 1 * _sy,
+        _icon_x + 4 * _sx, _icon_y + 7 * _sy, false);
+    draw_set_color(_gold);
+    draw_ellipse(_icon_x - 8 * _sx, _icon_y - 3 * _sy,
+        _icon_x + 3 * _sx, _icon_y + 4 * _sy, false);
+    draw_ellipse(_icon_x - 1 * _sx, _icon_y - 7 * _sy,
+        _icon_x + 8 * _sx, _icon_y, false);
+}
+
+draw_set_font(_font_hud);
+draw_set_color(_gold);
+_hud_text(_total_x, _gold_y, _gold_total_str);
+
+draw_set_font(_font_small);
+draw_set_color((_gain >= 0) ? make_color_rgb(129, 205, 107)
+                             : make_color_rgb(228, 112, 97));
+_hud_text(_delta_x, _gold_y + 3 * _sy, _delta);
+
+draw_set_color(c_white);
+draw_set_alpha(1);
 
 // ====================================================
 // SHIFT ANNOUNCEMENT BANNER

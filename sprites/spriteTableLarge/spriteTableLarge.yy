@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"spriteTableLarge",
   "bboxMode":2,
-  "bbox_bottom":74,
+  "bbox_bottom":88,
   "bbox_left":0,
   "bbox_right":255,
   "bbox_top":0,

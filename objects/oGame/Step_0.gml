@@ -234,6 +234,15 @@ if (global.paused)
     exit;
 }
 
+// Sleeping transitions freeze the shift, including pre-shift countdown.
+if (variable_global_exists("sleep_transition_active") && global.sleep_transition_active)
+{
+    global.player_can_move = false;
+    global.player_can_interact = false;
+    global.show_station_labels = false;
+    exit;
+}
+
 global.player_can_move = !_supply_menu_now;
 global.player_can_interact = !_supply_menu_now;
 global.show_station_labels = keyboard_check(vk_tab);
@@ -370,16 +379,22 @@ if (room == MessHall)
         global.shift_state = "cleanup";
         global.can_leave_mess_hall = true;
     }
+    else if (global.day_phase == "evening")
+    {
+        // Returning to the kitchen after leaving it does not reopen service.
+        global.game_state = "kitchen";
+        global.shift_state = "evening";
+        global.can_leave_mess_hall = true;
+    }
 }
 else
 {
-    // Non-kitchen phases never advance shift or spawn schedule.
-    if (global.day_phase == "camp_map")
-        global.game_state = "camp_map";
-    else if (global.day_phase == "market")
-        global.game_state = "market";
-    else if (global.day_phase == "home")
-        global.game_state = "home";
+    // Room location is tracked separately from the time-of-day phase.
+    // NEVER overwrite evening with market/home/camp_map/plaza here.
+    if (room == WarCampMap) global.game_state = "camp_map";
+    else if (room == Market) global.game_state = "market";
+    else if (room == Home) global.game_state = "home";
+    else if (room == CentralPlaza) global.game_state = "plaza";
 
     global.can_leave_mess_hall = false;
 }

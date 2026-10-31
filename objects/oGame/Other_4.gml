@@ -110,20 +110,13 @@ else if (room == MessHall)
         global.shift_banner_timer = 0;
     }
 
-    // Returning from camp locations restores
-    // cleanup instead of restarting service.
-    //
-    // Sleeping sets pre_shift before room_goto,
-    // so the next workday is unaffected.
-
-    if (global.day_phase == "camp_map"
-        || global.day_phase == "market"
-        || global.day_phase == "home"
-        || global.day_phase == "plaza")
+    // Evening is a persistent day phase. Returning after going out
+    // must NOT revert it to cleanup or start another shift.
+    if (global.day_phase == "evening")
     {
-        global.day_phase = "cleanup";
+        global.shift_state = "evening";
+        global.can_leave_mess_hall = true;
     }
-
 
     // ================================================
     // BUILD TODAY'S ARRIVAL SCHEDULE — ONCE PER DAY
@@ -381,6 +374,11 @@ else if (room == MessHall)
         global.shift_state = "cleanup";
         global.can_leave_mess_hall = true;
     }
+    else if (global.day_phase == "evening")
+    {
+        global.shift_state = "evening";
+        global.can_leave_mess_hall = true;
+    }
     else if (global.day_phase == "pre_shift")
     {
         global.shift_state = "pre_shift";
@@ -400,19 +398,19 @@ else if (room == MessHall)
 else if (room == WarCampMap)
 {
     global.game_state = "camp_map";
-    global.day_phase = "camp_map";
+    // Preserve global.day_phase (evening).
     global.can_leave_mess_hall = false;
 }
 else if (room == Market)
 {
     global.game_state = "market";
-    global.day_phase = "market";
+    // Preserve global.day_phase (evening).
     global.can_leave_mess_hall = false;
 }
 else if (room == Home)
 {
     global.game_state = "home";
-    global.day_phase = "home";
+    // Preserve global.day_phase (evening).
     global.can_leave_mess_hall = false;
 }
 else if (room == CentralPlaza)
@@ -420,7 +418,7 @@ else if (room == CentralPlaza)
     // NEW: Walkable social plaza.
 
     global.game_state = "plaza";
-    global.day_phase = "plaza";
+    // Preserve global.day_phase (evening).
     global.can_leave_mess_hall = false;
 }
 

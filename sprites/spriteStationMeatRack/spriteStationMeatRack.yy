@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"spriteStationMeatRack",
   "bboxMode":2,
-  "bbox_bottom":73,
+  "bbox_bottom":84,
   "bbox_left":0,
   "bbox_right":127,
   "bbox_top":0,

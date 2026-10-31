@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"spriteTableMedium",
   "bboxMode":2,
-  "bbox_bottom":76,
+  "bbox_bottom":85,
   "bbox_left":0,
   "bbox_right":191,
   "bbox_top":0,

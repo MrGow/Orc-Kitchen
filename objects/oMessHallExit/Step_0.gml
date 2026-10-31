@@ -1,146 +1,56 @@
-/// oMessHallExit — Step Event
+/// oMessHallExit — Step (FULL REPLACEMENT)
+/// First successful departure changes CLEANUP -> EVENING.
 
-// ====================================================
-// TEXT TIMER
-// ====================================================
+if (exit_text_timer > 0) exit_text_timer -= 1;
+if (triggered || room != MessHall || global.paused) exit;
+if (instance_number(oPlayer) == 0) exit;
 
-if (exit_text_timer > 0)
-{
-    exit_text_timer -= 1;
-}
+var _p = instance_nearest(x, y, oPlayer);
+if (!instance_exists(_p)) exit;
 
-
-// ====================================================
-// SAFETY
-// ====================================================
-
-if (triggered)
-{
-    exit;
-}
-
-if (room != MessHall)
-{
-    exit;
-}
-
-if (global.paused)
-{
-    exit;
-}
-
-
-// ====================================================
-// FIND PLAYER
-// ====================================================
-
-if (instance_number(oPlayer) == 0)
-{
-    exit;
-}
-
-var _p = instance_nearest(
-    x,
-    y,
-    oPlayer
-);
-
-if (!instance_exists(_p))
-{
-    exit;
-}
-
-
-// ====================================================
-// EXIT OVERLAP
-// ====================================================
-
-// Use collision bounding boxes.
-//
-// This respects the exit object's existing
-// rectangle sprite/mask and room scaling.
-
-var _inside =
-    _p.bbox_right >= bbox_left
+var _inside = _p.bbox_right >= bbox_left
     && _p.bbox_left <= bbox_right
     && _p.bbox_bottom >= bbox_top
     && _p.bbox_top <= bbox_bottom;
 
-
-// ====================================================
-// ARM EXIT AFTER PLAYER LEAVES DOORWAY
-// ====================================================
-
-// The player may spawn directly inside this
-// exit trigger.
-//
-// Do not allow it to activate until the player
-// has completely moved outside its bounds.
-
+// Spawn-inside guard: exit arms only after player leaves its bounds.
 if (!exit_armed)
 {
     if (!_inside)
     {
         exit_armed = true;
-
         if (global.ok_debug)
-        {
-            show_debug_message(
-                "[MessHallExit] Armed after player "
-                + "left doorway."
-            );
-        }
+            show_debug_message("[MessHallExit] Armed after player left doorway.");
     }
-
     exit;
 }
 
-
-// ====================================================
-// ONLY CONTINUE WHEN PLAYER TOUCHES EXIT
-// ====================================================
-
-if (!_inside)
-{
-    exit;
-}
-
-
-// ====================================================
-// BLOCK EXIT DURING ACTIVE SHIFT
-// ====================================================
-
-// global.can_leave_mess_hall remains the
-// authority for whether leaving is permitted.
+if (!_inside) exit;
 
 if (!global.can_leave_mess_hall)
 {
-    // Avoid resetting the message every frame.
     if (exit_text_timer <= 0)
     {
         exit_text = "CAN'T LEAVE DURING SHIFT!";
         exit_text_timer = room_speed;
     }
-
     exit;
 }
 
-
-// ====================================================
-// LEAVE MESS HALL
-// ====================================================
-
 triggered = true;
 
-global.day_phase = "camp_map";
+// Leaving after cleanup starts the evening once; subsequent room visits
+// never turn it back into cleanup or an active shift.
+if (global.day_phase == "cleanup")
+{
+    global.day_phase = "evening";
+    global.shift_state = "evening";
+}
+
 global.game_state = "camp_map";
 global.can_leave_mess_hall = false;
 
 if (global.ok_debug)
-{
-    show_debug_message(
-        "[MessHallExit] Auto exit to WarCampMap."
-    );
-}
+    show_debug_message("[MessHallExit] Leaving Mess Hall: " + global.day_phase);
 
 room_goto(WarCampMap);

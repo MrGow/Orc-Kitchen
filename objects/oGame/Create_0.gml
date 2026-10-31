@@ -116,9 +116,7 @@ global.campaign_started = false;
 // "closing"
 // "shift_summary"
 // "cleanup"
-// "camp_map"
-// "market"
-// "home"
+// "evening" (persists across all camp rooms until sleep)
 
 global.day_phase = "main_menu";
 
@@ -128,6 +126,7 @@ global.day_phase = "main_menu";
 // "closing"
 // "shift_summary"
 // "cleanup"
+// "evening"
 // "ended"
 
 global.shift_state = "ended";
@@ -224,6 +223,10 @@ global.table_prices = [
 // ====================================================
 
 global.gold = 0;
+
+// Baseline for the HUD daily gold change (+/-) across all rooms.
+// Reset only when sleeping advances the day.
+global.day_start_gold = global.gold;
 
 global.shift_revenue = 0;
 global.shift_tips = 0;

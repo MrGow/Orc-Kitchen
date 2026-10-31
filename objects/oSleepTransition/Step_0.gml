@@ -1,5 +1,5 @@
-/// oSleepTransition — Step
-// Keep input locked until the new day is visible.
+/// oSleepTransition — Step (FULL REPLACEMENT)
+/// Evening ends only when a new day begins under full blackout.
 
 global.sleep_transition_active = true;
 global.player_can_move = false;
@@ -28,11 +28,14 @@ switch (transition_state)
 
         if (transition_frame >= sleep_hold_frames)
         {
-            // Reset exactly once, while fully covered by black.
             if (!day_advanced)
             {
                 day_advanced = true;
                 global.day += 1;
+
+                // New day's gold delta begins at the amount held after
+                // all evening shopping and other spending.
+                global.day_start_gold = global.gold;
 
                 global.shift_revenue = 0;
                 global.shift_tips = 0;
@@ -72,8 +75,6 @@ switch (transition_state)
                 global.can_leave_mess_hall = false;
                 global.evening_activity_used = false;
 
-                // oGame Room Start will roll the new day profile/schedule.
-                // oGame Step remains frozen until fade-in finishes.
                 if (global.ok_debug)
                     show_debug_message("[SleepTransition] Starting day " + string(global.day));
             }
@@ -87,8 +88,6 @@ switch (transition_state)
 
     case "wait_room":
     {
-        // room_goto completes after the frame; retain full blackout
-        // until the new room is actually active.
         transition_alpha = 1;
         if (room == MessHall)
         {
@@ -113,7 +112,6 @@ switch (transition_state)
 
     case "finished":
     {
-        // From the following frame, oGame may tick the 5-second countdown.
         global.sleep_transition_active = false;
         global.player_can_move = true;
         global.player_can_interact = true;

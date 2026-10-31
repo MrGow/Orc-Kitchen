@@ -2,7 +2,7 @@
   "$GMSprite":"v2",
   "%Name":"spriteStationPrepCounter",
   "bboxMode":2,
-  "bbox_bottom":43,
+  "bbox_bottom":57,
   "bbox_left":0,
   "bbox_right":127,
   "bbox_top":0,
